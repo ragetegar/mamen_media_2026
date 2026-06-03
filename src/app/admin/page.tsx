@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getArticles, getConcerts } from "@/lib/data";
 import { Article, Concert } from "@/lib/types";
-import { getBrowserSupabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { getAdminDashboardData } from "@/app/admin/actions";
 
 export default function AdminDashboard() {
     const { user, isLoading: loadingAuth } = useAuth();
@@ -13,21 +12,21 @@ export default function AdminDashboard() {
     const [concerts, setConcerts] = useState<Concert[]>([]);
     const [productCount, setProductCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     useEffect(() => {
         if (loadingAuth) return;
 
         async function loadData() {
+            setLoadError("");
             try {
-                const [arts, concs] = await Promise.all([getArticles(), getConcerts()]);
-                setArticles(arts);
-                setConcerts(concs);
-
-                const supabase = getBrowserSupabase();
-                const { count } = await supabase.from("article_products").select("*", { count: "exact", head: true });
-                setProductCount(count || 0);
+                const data = await getAdminDashboardData();
+                setArticles(data.articles);
+                setConcerts(data.concerts);
+                setProductCount(data.productCount);
             } catch (err) {
                 console.error("Failed to load dashboard data:", err);
+                setLoadError(err instanceof Error ? err.message : "Failed to load dashboard data");
             } finally {
                 setLoading(false);
             }
@@ -75,6 +74,13 @@ export default function AdminDashboard() {
             <h1 className="font-headline text-3xl font-black text-mamen-white mb-8">
                 Dashboard
             </h1>
+
+            {!loading && loadError && (
+                <div className="mb-6 p-4 bg-red-900/30 border-2 border-red-500 text-red-300 text-sm">
+                    <p className="font-headline font-bold uppercase tracking-wider mb-1">Could not load dashboard</p>
+                    <p>{loadError}</p>
+                </div>
+            )}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">

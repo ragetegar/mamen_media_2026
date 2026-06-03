@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
@@ -30,7 +30,7 @@ interface BarenganDetailClientProps {
 }
 
 export default function BarenganDetailClient({ post, currentUserId }: BarenganDetailClientProps) {
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
     const userId = user?.id || currentUserId;
 
     const [pendingMembers, setPendingMembers] = useState<BarenganMember[]>([]);
@@ -48,15 +48,10 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
     const isApprovedMember = approvedMembers.some((m) => m.user_id === userId);
     const isPendingMember = pendingMembers.some((m) => m.user_id === userId);
     const hasGroupAccess = isCreator || isApprovedMember;
-
-    // Check if chat should be read-only (concert ended + 24h)
-    const concertEndDate = post.concert?.end_datetime || post.concert?.start_datetime;
-    const chatReadOnly = concertEndDate
-        ? new Date(concertEndDate).getTime() + 24 * 60 * 60 * 1000 < Date.now()
-        : false;
+    const visibleApprovedCount = hasGroupAccess ? approvedMembers.length : post.approved_count || 0;
 
     // Subscribe to realtime chat messages
-    const { newMessages, clearNewMessages } = useRealtimeMessages(
+    const { newMessages } = useRealtimeMessages(
         "barengan_messages",
         "barengan_post_id",
         post.id
@@ -64,6 +59,8 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
 
     // Load initial data
     useEffect(() => {
+        if (isLoading) return;
+
         async function loadData() {
             const [pending, approved] = await Promise.all([
                 getBarenganMembers(post.id, "pending"),
@@ -75,7 +72,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
             // Load chat only if user has access (we check after members load)
         }
         loadData();
-    }, [post.id]);
+    }, [isLoading, post.id, userId]);
 
     // Load chat messages when we know user has access
     useEffect(() => {
@@ -87,10 +84,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
         loadChat();
     }, [hasGroupAccess, post.id]);
 
-    // Merge realtime messages
-    useEffect(() => {
-        if (newMessages.length === 0) return;
-
+    const visibleChatMessages = useMemo(() => {
         // Build profiles map from existing messages + approved members
         const profileMap: Record<string, ProfileSnippet> = {};
         chatMessages.forEach((m) => {
@@ -101,18 +95,16 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
         });
         if (post.profile) profileMap[post.profile.id] = post.profile;
 
-        const merged = newMessages
+        const realtimeMessages = newMessages as BarenganChatMessage[];
+        const merged = realtimeMessages
             .filter((nm) => !chatMessages.some((cm) => cm.id === nm.id))
             .map((nm) => ({
                 ...nm,
                 sender: profileMap[nm.user_id] || null,
             }));
 
-        if (merged.length > 0) {
-            setChatMessages((prev) => [...prev, ...merged]);
-            clearNewMessages();
-        }
-    }, [newMessages, chatMessages, approvedMembers, post.profile, clearNewMessages]);
+        return [...chatMessages, ...merged];
+    }, [newMessages, chatMessages, approvedMembers, post.profile]);
 
     const handleRequestJoin = async () => {
         if (!userId) {
@@ -141,6 +133,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
 
     const handleApprove = async (memberId: string) => {
         setActionLoading(memberId);
+        setError("");
         const result = await approveBarenganMember(memberId);
         if (result.success) {
             const [pending, approved] = await Promise.all([
@@ -149,16 +142,21 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
             ]);
             setPendingMembers(pending);
             setApprovedMembers(approved);
+        } else {
+            setError(result.error || "Failed to approve request");
         }
         setActionLoading(null);
     };
 
     const handleReject = async (memberId: string) => {
         setActionLoading(memberId);
+        setError("");
         const result = await rejectBarenganMember(memberId);
         if (result.success) {
             const pending = await getBarenganMembers(post.id, "pending");
             setPendingMembers(pending);
+        } else {
+            setError(result.error || "Failed to reject request");
         }
         setActionLoading(null);
     };
@@ -178,11 +176,11 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                 <div className="p-6">
                     <h2 className="font-headline text-lg font-bold text-mamen-white flex items-center gap-2 mb-4">
                         <Users size={18} className="text-mamen-purple" />
-                        Members ({approvedMembers.length}/{post.max_members || post.looking_for})
+                        Members ({visibleApprovedCount}/{post.max_members || post.looking_for})
                     </h2>
 
                     {/* Approved Members List */}
-                    {approvedMembers.length > 0 && (
+                    {hasGroupAccess && approvedMembers.length > 0 && (
                         <div className="space-y-3 mb-6">
                             {approvedMembers.map((member) => (
                                 <MemberRow key={member.id} member={member} />
@@ -190,9 +188,20 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                         </div>
                     )}
 
-                    {approvedMembers.length === 0 && (
+                    {hasGroupAccess && approvedMembers.length === 0 && (
                         <div className="text-center py-6 border-2 border-dashed border-mamen-gray-800 mb-6">
                             <p className="text-sm text-mamen-gray-700">No approved members yet.</p>
+                        </div>
+                    )}
+
+                    {!hasGroupAccess && (
+                        <div className="text-center py-6 border-2 border-dashed border-mamen-gray-800 mb-6">
+                            <p className="font-headline text-sm font-bold tracking-widest uppercase text-mamen-gray-200 mb-1">
+                                Member list is private
+                            </p>
+                            <p className="text-sm text-mamen-gray-700">
+                                You can see who&apos;s joining after the post creator approves your request.
+                            </p>
                         </div>
                     )}
 
@@ -277,9 +286,9 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                                     variant="lime"
                                     size="sm"
                                     onClick={handleRequestJoin}
-                                    disabled={submitting || !joinMessage.trim()}
+                                    disabled={submitting || (!!userId && !joinMessage.trim())}
                                 >
-                                    {submitting ? "Sending..." : "Request to Join"}
+                                    {submitting ? "Sending..." : userId ? "Request to Join" : "Login to Request"}
                                 </Button>
                             </div>
                         </div>
@@ -323,7 +332,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                         </h2>
                     </div>
                     <ChatThread
-                        messages={chatMessages.map((m) => ({
+                        messages={visibleChatMessages.map((m) => ({
                             id: m.id,
                             body: m.body,
                             created_at: m.created_at,
@@ -332,7 +341,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                         currentUserId={userId || ""}
                         onSend={handleSendChat}
                         sending={sendingChat}
-                        readOnly={chatReadOnly || !post.is_active}
+                        readOnly={!post.is_active}
                         emptyText="No messages yet. Say hi to the group!"
                     />
                 </div>

@@ -21,7 +21,27 @@ import {
     DirectMessage,
     ConcertAttendee,
 } from "./types";
-import { supabase } from "./supabase";
+import { createServerSupabase, getBrowserSupabase, supabase } from "./supabase";
+
+async function getContextSupabase() {
+    return typeof window === "undefined" ? await createServerSupabase() : getBrowserSupabase();
+}
+
+type RawBarenganPost = Omit<BarenganPost, "concert" | "profile"> & {
+    concert?: Concert | null;
+};
+
+type RawBarenganMember = Omit<BarenganMember, "profile">;
+
+type RawBarenganChatMessage = Omit<BarenganChatMessage, "sender">;
+
+type BarenganMemberPostLookup = {
+    barengan_post_id: string;
+    barengan_posts:
+    | { max_members?: number | null; looking_for?: number | null }
+    | { max_members?: number | null; looking_for?: number | null }[]
+    | null;
+};
 
 // ── ARTICLES ──
 
@@ -740,13 +760,14 @@ export async function getBarenganPosts(filters?: {
     sort?: "latest" | "concert_date";
     limit?: number;
 }): Promise<BarenganPost[]> {
-    let query = supabase
+    const db = await getContextSupabase();
+    let query = db
         .from("barengan_posts")
         .select(`*, concert:concerts(*)`)
         .eq("is_active", true);
 
     if (filters?.concertSlug) {
-        const { data: concert } = await supabase
+        const { data: concert } = await db
             .from("concerts")
             .select("id")
             .eq("slug", filters.concertSlug)
@@ -758,11 +779,7 @@ export async function getBarenganPosts(filters?: {
     }
 
     const sortBy = filters?.sort || "latest";
-    if (sortBy === "concert_date") {
-        query = query.order("created_at", { ascending: false });
-    } else {
-        query = query.order("created_at", { ascending: false });
-    }
+    query = query.order("created_at", { ascending: false });
 
     if (filters?.limit) {
         query = query.limit(filters.limit);
@@ -774,7 +791,7 @@ export async function getBarenganPosts(filters?: {
         return [];
     }
 
-    const posts = data as any[];
+    const posts = data as RawBarenganPost[];
     if (posts.length === 0) return [];
 
     // Fetch profiles and member counts (approved + pending) separately
@@ -782,35 +799,46 @@ export async function getBarenganPosts(filters?: {
     const postIds = posts.map((p) => p.id);
 
     const [profilesResult, approvedResult, pendingResult] = await Promise.all([
-        supabase.from("profiles").select("id, name, handle, avatar").in("id", userIds),
-        supabase.from("barengan_members").select("barengan_post_id").eq("status", "approved").in("barengan_post_id", postIds),
-        supabase.from("barengan_members").select("barengan_post_id").eq("status", "pending").in("barengan_post_id", postIds),
+        db.from("profiles").select("id, name, handle, avatar").in("id", userIds),
+        db.from("barengan_members").select("barengan_post_id").eq("status", "approved").in("barengan_post_id", postIds),
+        db.from("barengan_members").select("barengan_post_id").eq("status", "pending").in("barengan_post_id", postIds),
     ]);
 
-    const profileMap: Record<string, any> = {};
-    profilesResult.data?.forEach((p: any) => { profileMap[p.id] = p; });
+    const profileMap: Record<string, ProfileSnippet> = {};
+    profilesResult.data?.forEach((profile) => { profileMap[profile.id] = profile as ProfileSnippet; });
 
     const approvedCountMap: Record<string, number> = {};
-    approvedResult.data?.forEach((r: any) => {
-        approvedCountMap[r.barengan_post_id] = (approvedCountMap[r.barengan_post_id] || 0) + 1;
+    approvedResult.data?.forEach((result) => {
+        approvedCountMap[result.barengan_post_id] = (approvedCountMap[result.barengan_post_id] || 0) + 1;
     });
 
     const pendingCountMap: Record<string, number> = {};
-    pendingResult.data?.forEach((r: any) => {
-        pendingCountMap[r.barengan_post_id] = (pendingCountMap[r.barengan_post_id] || 0) + 1;
+    pendingResult.data?.forEach((result) => {
+        pendingCountMap[result.barengan_post_id] = (pendingCountMap[result.barengan_post_id] || 0) + 1;
     });
 
-    return posts.map((post) => ({
+    const hydratedPosts = posts.map((post) => ({
         ...post,
         profile: profileMap[post.user_id] || null,
         approved_count: approvedCountMap[post.id] || 0,
         member_count: (approvedCountMap[post.id] || 0) + (pendingCountMap[post.id] || 0),
         response_count: approvedCountMap[post.id] || 0, // legacy compat
     })) as BarenganPost[];
+
+    if (sortBy === "concert_date") {
+        return hydratedPosts.sort((firstPost, secondPost) => {
+            const firstDate = firstPost.concert?.start_datetime ? new Date(firstPost.concert.start_datetime).getTime() : Number.MAX_SAFE_INTEGER;
+            const secondDate = secondPost.concert?.start_datetime ? new Date(secondPost.concert.start_datetime).getTime() : Number.MAX_SAFE_INTEGER;
+            return firstDate - secondDate;
+        });
+    }
+
+    return hydratedPosts;
 }
 
 export async function getBarenganPostById(id: string): Promise<BarenganPost | null> {
-    const { data, error } = await supabase
+    const db = await getContextSupabase();
+    const { data, error } = await db
         .from("barengan_posts")
         .select(`*, concert:concerts(*)`)
         .eq("id", id)
@@ -820,9 +848,9 @@ export async function getBarenganPostById(id: string): Promise<BarenganPost | nu
 
     // Fetch profile and member counts separately
     const [profileResult, approvedResult, pendingResult] = await Promise.all([
-        supabase.from("profiles").select("id, name, handle, avatar").eq("id", (data as any).user_id).single(),
-        supabase.from("barengan_members").select("id", { count: "exact", head: true }).eq("barengan_post_id", id).eq("status", "approved"),
-        supabase.from("barengan_members").select("id", { count: "exact", head: true }).eq("barengan_post_id", id).eq("status", "pending"),
+        db.from("profiles").select("id, name, handle, avatar").eq("id", (data as RawBarenganPost).user_id).single(),
+        db.from("barengan_members").select("id", { count: "exact", head: true }).eq("barengan_post_id", id).eq("status", "approved"),
+        db.from("barengan_members").select("id", { count: "exact", head: true }).eq("barengan_post_id", id).eq("status", "pending"),
     ]);
 
     const approvedCount = approvedResult.count || 0;
@@ -852,7 +880,8 @@ export async function getBarenganResponses(postId: string): Promise<BarenganResp
 }
 
 export async function getBarenganMembers(postId: string, status?: BarenganMemberStatus): Promise<BarenganMember[]> {
-    let query = supabase
+    const db = await getContextSupabase();
+    let query = db
         .from("barengan_members")
         .select("*")
         .eq("barengan_post_id", postId)
@@ -866,18 +895,19 @@ export async function getBarenganMembers(postId: string, status?: BarenganMember
     if (error || !data || data.length === 0) return [];
 
     // Fetch profiles separately
-    const userIds = [...new Set(data.map((r: any) => r.user_id))];
-    const { data: profiles } = await supabase
+    const members = data as RawBarenganMember[];
+    const userIds = [...new Set(members.map((member) => member.user_id))];
+    const { data: profiles } = await db
         .from("profiles")
         .select("id, name, handle, avatar")
         .in("id", userIds);
 
-    const profileMap: Record<string, any> = {};
-    profiles?.forEach((p: any) => { profileMap[p.id] = p; });
+    const profileMap: Record<string, ProfileSnippet> = {};
+    profiles?.forEach((profile) => { profileMap[profile.id] = profile as ProfileSnippet; });
 
-    return data.map((r: any) => ({
-        ...r,
-        profile: profileMap[r.user_id] || null,
+    return members.map((member) => ({
+        ...member,
+        profile: profileMap[member.user_id] || null,
     })) as unknown as BarenganMember[];
 }
 
@@ -888,9 +918,13 @@ export async function createBarenganPost(post: {
     message: string;
     looking_for: number;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
-    const { data, error } = await supabase
+    const db = await getContextSupabase();
+    const { data, error } = await db
         .from("barengan_posts")
-        .insert(post)
+        .insert({
+            ...post,
+            max_members: post.looking_for,
+        })
         .select("id")
         .single();
 
@@ -908,7 +942,8 @@ export async function createBarenganResponse(response: {
 }
 
 export async function requestToJoinBarengan(postId: string, userId: string, message: string): Promise<{ success: boolean; error?: string }> {
-    const { error } = await supabase
+    const db = await getContextSupabase();
+    const { error } = await db
         .from("barengan_members")
         .insert({
             barengan_post_id: postId,
@@ -925,7 +960,33 @@ export async function requestToJoinBarengan(postId: string, userId: string, mess
 }
 
 export async function approveBarenganMember(memberId: string): Promise<{ success: boolean; error?: string }> {
-    const { error } = await supabase
+    const db = await getContextSupabase();
+    const { data: member, error: memberError } = await db
+        .from("barengan_members")
+        .select("barengan_post_id, barengan_posts(max_members, looking_for)")
+        .eq("id", memberId)
+        .single();
+
+    if (memberError || !member) return { success: false, error: memberError?.message || "Request not found" };
+
+    const memberLookup = member as unknown as BarenganMemberPostLookup;
+    const { count, error: countError } = await db
+        .from("barengan_members")
+        .select("id", { count: "exact", head: true })
+        .eq("barengan_post_id", memberLookup.barengan_post_id)
+        .eq("status", "approved");
+
+    if (countError) return { success: false, error: countError.message };
+
+    const embeddedPost = Array.isArray(memberLookup.barengan_posts)
+        ? memberLookup.barengan_posts[0]
+        : memberLookup.barengan_posts;
+    const maxMembers = embeddedPost?.max_members || embeddedPost?.looking_for || 1;
+    if ((count || 0) >= maxMembers) {
+        return { success: false, error: "This barengan group is already full" };
+    }
+
+    const { error } = await db
         .from("barengan_members")
         .update({ status: "approved" })
         .eq("id", memberId);
@@ -935,7 +996,8 @@ export async function approveBarenganMember(memberId: string): Promise<{ success
 }
 
 export async function rejectBarenganMember(memberId: string): Promise<{ success: boolean; error?: string }> {
-    const { error } = await supabase
+    const db = await getContextSupabase();
+    const { error } = await db
         .from("barengan_members")
         .update({ status: "rejected" })
         .eq("id", memberId);
@@ -945,7 +1007,8 @@ export async function rejectBarenganMember(memberId: string): Promise<{ success:
 }
 
 export async function sendBarenganChatMessage(postId: string, userId: string, body: string): Promise<{ success: boolean; error?: string }> {
-    const { error } = await supabase
+    const db = await getContextSupabase();
+    const { error } = await db
         .from("barengan_messages")
         .insert({
             barengan_post_id: postId,
@@ -958,7 +1021,8 @@ export async function sendBarenganChatMessage(postId: string, userId: string, bo
 }
 
 export async function getBarenganChatMessages(postId: string, limit: number = 100): Promise<BarenganChatMessage[]> {
-    const { data, error } = await supabase
+    const db = await getContextSupabase();
+    const { data, error } = await db
         .from("barengan_messages")
         .select("*")
         .eq("barengan_post_id", postId)
@@ -968,23 +1032,25 @@ export async function getBarenganChatMessages(postId: string, limit: number = 10
     if (error || !data || data.length === 0) return [];
 
     // Fetch sender profiles
-    const userIds = [...new Set(data.map((m: any) => m.user_id))];
-    const { data: profiles } = await supabase
+    const messages = data as RawBarenganChatMessage[];
+    const userIds = [...new Set(messages.map((message) => message.user_id))];
+    const { data: profiles } = await db
         .from("profiles")
         .select("id, name, handle, avatar")
         .in("id", userIds);
 
-    const profileMap: Record<string, any> = {};
-    profiles?.forEach((p: any) => { profileMap[p.id] = p; });
+    const profileMap: Record<string, ProfileSnippet> = {};
+    profiles?.forEach((profile) => { profileMap[profile.id] = profile as ProfileSnippet; });
 
-    return data.map((m: any) => ({
-        ...m,
-        sender: profileMap[m.user_id] || null,
+    return messages.map((message) => ({
+        ...message,
+        sender: profileMap[message.user_id] || null,
     })) as unknown as BarenganChatMessage[];
 }
 
 export async function getBarenganCountForConcert(concertId: string): Promise<number> {
-    const { count, error } = await supabase
+    const db = await getContextSupabase();
+    const { count, error } = await db
         .from("barengan_posts")
         .select("*", { count: "exact", head: true })
         .eq("concert_id", concertId)

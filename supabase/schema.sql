@@ -11,7 +11,7 @@ CREATE TABLE articles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('music', 'concerts', 'fashion', 'sports', 'gaming', 'anime', 'jkt48', 'kpop', 'news', 'culture')),
+  category TEXT NOT NULL CHECK (category IN ('music', 'concerts', 'lifestyle', 'sports', 'hobbies', 'fashion', 'gaming', 'anime', 'jkt48', 'kpop', 'news', 'culture')),
   subcategory TEXT,
   cover_image TEXT NOT NULL DEFAULT '',
   excerpt TEXT NOT NULL DEFAULT '',
@@ -110,8 +110,8 @@ ALTER TABLE featured_brands ENABLE ROW LEVEL SECURITY;
 ALTER TABLE affiliate_clicks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
--- Public read access for content
-CREATE POLICY "Public read articles" ON articles FOR SELECT USING (true);
+-- Public read access for published content
+CREATE POLICY "Public read articles" ON articles FOR SELECT USING (status = 'published');
 CREATE POLICY "Public read products" ON article_products FOR SELECT USING (true);
 CREATE POLICY "Public read concerts" ON concerts FOR SELECT USING (true);
 CREATE POLICY "Public read brands" ON featured_brands FOR SELECT USING (is_active = true);
@@ -179,6 +179,7 @@ CREATE TABLE barengan_posts (
   status TEXT NOT NULL CHECK (status IN ('ticket_holder', 'interested_will_come', 'interested_unsure')),
   message TEXT NOT NULL DEFAULT '',
   looking_for INTEGER DEFAULT 1,
+  max_members INTEGER DEFAULT 5,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -300,5 +301,61 @@ CREATE TABLE public.barengan_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE OR REPLACE FUNCTION public.is_barengan_group_member(p_post_id UUID, p_user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM barengan_posts WHERE id = p_post_id AND user_id = p_user_id
+  ) OR EXISTS (
+    SELECT 1 FROM barengan_members WHERE barengan_post_id = p_post_id AND user_id = p_user_id AND status = 'approved'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.is_barengan_group_active(p_post_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_end TIMESTAMPTZ;
+  v_start TIMESTAMPTZ;
+BEGIN
+  SELECT c.end_datetime, c.start_datetime INTO v_end, v_start
+  FROM barengan_posts bp
+  JOIN concerts c ON c.id = bp.concert_id
+  WHERE bp.id = p_post_id;
+
+  v_end := COALESCE(v_end, v_start);
+  IF v_end IS NULL THEN RETURN true; END IF;
+
+  RETURN NOW() < (v_end + INTERVAL '24 hours');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 ALTER TABLE public.barengan_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.barengan_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Read members of posts" ON public.barengan_members
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM barengan_posts WHERE id = barengan_post_id AND user_id = auth.uid())
+    OR user_id = auth.uid()
+    OR (
+      status = 'approved'
+      AND public.is_barengan_group_member(barengan_post_id, auth.uid())
+    )
+  );
+CREATE POLICY "Request to join" ON public.barengan_members
+  FOR INSERT WITH CHECK (auth.uid() = user_id AND status = 'pending');
+CREATE POLICY "Creator manages members" ON public.barengan_members
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM barengan_posts WHERE id = barengan_post_id AND user_id = auth.uid())
+  );
+CREATE POLICY "Own member delete" ON public.barengan_members
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Read group messages" ON public.barengan_messages
+  FOR SELECT USING (public.is_barengan_group_member(barengan_post_id, auth.uid()));
+CREATE POLICY "Send group messages" ON public.barengan_messages
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id
+    AND public.is_barengan_group_member(barengan_post_id, auth.uid())
+    AND public.is_barengan_group_active(barengan_post_id)
+  );

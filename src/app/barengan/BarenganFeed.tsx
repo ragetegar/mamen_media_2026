@@ -6,7 +6,7 @@ import BarenganCard from "@/components/BarenganCard";
 import { getBarenganPosts } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { BarenganPost } from "@/lib/types";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import Button from "@/components/ui/Button";
 
 interface BarenganFeedProps {
@@ -107,6 +107,30 @@ export default function BarenganFeed({ initialPosts, concertSlug }: BarenganFeed
             {/* Feed */}
             <section className="bg-mamen-black py-8 md:py-12 min-h-[50vh]">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="card-frame overflow-hidden mb-4">
+                        <div className="p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-mamen-purple border-2 border-mamen-black flex items-center justify-center font-headline font-black text-white shrink-0">
+                                {user?.name?.[0]?.toUpperCase() || <Sparkles size={18} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm text-mamen-gray-200">
+                                    {user ? "What event do you want to watch together?" : "Login to request joins or start your own barengan."}
+                                </p>
+                                <p className="text-xs text-mamen-gray-700 mt-0.5">
+                                    Requests stay private until the creator approves them.
+                                </p>
+                            </div>
+                            {user && (
+                                <Link href="/barengan/create" className="shrink-0">
+                                    <Button variant="lime" size="sm">
+                                        <Plus size={16} className="mr-1" />
+                                        Post
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+
                     {loading ? (
                         <div className="flex justify-center py-20">
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-mamen-purple"></div>

@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react";
 import { Article, ArticleCategory, ARTICLE_CATEGORIES, ArticleProduct, Concert } from "@/lib/types";
 import { Trash2, Edit, Plus, X, Save, ExternalLink, RefreshCw } from "lucide-react";
-import { getArticles, getConcerts } from "@/lib/data";
 import {
+    getAdminArticleData,
     createArticle,
     updateArticle,
     deleteArticle,
     createArticleProduct,
     deleteArticleProduct
 } from "@/app/admin/actions";
-import { getBrowserSupabase } from "@/lib/supabase";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
 import MediaSelector from "@/components/MediaSelector";
@@ -90,6 +89,7 @@ export default function AdminArticlesPage() {
     const [allConcerts, setAllConcerts] = useState<Concert[]>([]);
     const [authors, setAuthors] = useState<{ id: string; name: string; role: string }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -108,30 +108,21 @@ export default function AdminArticlesPage() {
         let isMounted = true;
         async function loadData() {
             setLoading(true);
+            setLoadError("");
             try {
-                const supabase = getBrowserSupabase();
-
-                const [{ data: artsData }, { data: concsData }, { data: prods }] = await Promise.all([
-                    supabase.from("articles").select("*").order("created_at", { ascending: false }),
-                    supabase.from("concerts").select("*").order("start_datetime", { ascending: true }),
-                    supabase.from("article_products").select("*")
-                ]);
-
-                // Fetch admin & contributor profiles for the author dropdown
-                const { data: profiles } = await supabase
-                    .from("profiles")
-                    .select("id, name, role")
-                    .in("role", ["admin", "contributor"])
-                    .order("name");
+                const data = await getAdminArticleData();
 
                 if (isMounted) {
-                    setArticles((artsData || []) as Article[]);
-                    setAllConcerts((concsData || []) as Concert[]);
-                    if (prods) setProducts(prods as ArticleProduct[]);
-                    if (profiles) setAuthors(profiles);
+                    setArticles(data.articles);
+                    setAllConcerts(data.concerts);
+                    setProducts(data.products);
+                    setAuthors(data.authors);
                 }
             } catch (err) {
                 console.error("Failed to load admin data:", err);
+                if (isMounted) {
+                    setLoadError(err instanceof Error ? err.message : "Failed to load admin data");
+                }
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -227,7 +218,7 @@ export default function AdminArticlesPage() {
             setShowForm(false);
             setEditingId(null);
             setForm(emptyForm);
-        } catch (error) {
+        } catch {
             alert("Error saving article. Check console for details.");
         } finally {
             setIsSaving(false);
@@ -240,7 +231,7 @@ export default function AdminArticlesPage() {
                 await deleteArticle(id);
                 setArticles((prev) => prev.filter((a) => a.id !== id));
                 setProducts((prev) => prev.filter((p) => p.article_id !== id));
-            } catch (err) {
+            } catch {
                 alert("Failed to delete article.");
             }
         }
@@ -254,7 +245,7 @@ export default function AdminArticlesPage() {
                 setArticles((prev) =>
                     prev.map((a) => (a.id === id ? updated : a))
                 );
-            } catch (err) {
+            } catch {
                 alert("Failed to toggle status.");
             }
         }
@@ -281,7 +272,7 @@ export default function AdminArticlesPage() {
                 affiliate_url: "",
             });
             setShowProductForm(false);
-        } catch (err) {
+        } catch {
             alert("Failed to add product.");
         }
     };
@@ -290,7 +281,7 @@ export default function AdminArticlesPage() {
         try {
             await deleteArticleProduct(productId);
             setProducts((prev) => prev.filter((p) => p.id !== productId));
-        } catch (err) {
+        } catch {
             alert("Failed to delete product.");
         }
     };
@@ -345,6 +336,13 @@ export default function AdminArticlesPage() {
             {loading && (
                 <div className="flex justify-center py-20">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-mamen-lime"></div>
+                </div>
+            )}
+
+            {!loading && loadError && (
+                <div className="mb-6 p-4 bg-red-900/30 border-2 border-red-500 text-red-300 text-sm">
+                    <p className="font-headline font-bold uppercase tracking-wider mb-1">Could not load articles</p>
+                    <p>{loadError}</p>
                 </div>
             )}
 
@@ -436,7 +434,6 @@ export default function AdminArticlesPage() {
                                         <select
                                             value={form.author}
                                             onChange={(e) => {
-                                                const selected = authors.find(a => a.name === e.target.value);
                                                 setForm({ ...form, author: e.target.value });
                                                 // Note: author_id will be set on save from the selected profile
                                             }}

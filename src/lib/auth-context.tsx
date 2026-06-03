@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import type { User } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "./supabase";
 
 export interface AuthUser {
@@ -28,6 +29,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+type ProfileRow = {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    handle?: string | null;
+    role?: "admin" | "contributor" | "user" | null;
+    avatar?: string | null;
+    banner_image?: string | null;
+    social_instagram?: string | null;
+    social_tiktok?: string | null;
+    social_x?: string | null;
+    favorite_concert_ids?: string[] | null;
+};
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : "Something went wrong";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         let mounted = true;
 
-        const buildUser = (data: any, email: string): AuthUser => ({
+        const buildUser = (data: ProfileRow, email: string): AuthUser => ({
             id: data.id,
             email: data.email || email,
             name: data.name || "",
@@ -50,13 +69,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             favorite_concert_ids: data.favorite_concert_ids || [],
         });
 
-        const fetchProfile = async (authUserId: string, email: string) => {
+        const fetchProfile = async (authUser: User) => {
             try {
+                const email = authUser.email || "";
+                const metadata = authUser.user_metadata || {};
                 const { data, error } = await supabase
                     .from("profiles")
                     .select("*")
-                    .eq("id", authUserId)
-                    .single();
+                    .eq("id", authUser.id)
+                    .maybeSingle();
 
                 if (error) {
                     console.error("Error fetching profile:", error);
@@ -64,8 +85,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                if (mounted && data) {
-                    setUser(buildUser(data, email));
+                let profile = data;
+                if (!profile) {
+                    const fallbackName =
+                        metadata.full_name ||
+                        metadata.name ||
+                        email.split("@")[0] ||
+                        "Mamen User";
+
+                    const { data: insertedProfile, error: insertError } = await supabase
+                        .from("profiles")
+                        .insert({
+                            id: authUser.id,
+                            email,
+                            name: fallbackName,
+                            avatar: metadata.avatar_url || metadata.picture || "",
+                        })
+                        .select("*")
+                        .single();
+
+                    if (insertError) {
+                        console.error("Error creating profile:", insertError);
+                    } else {
+                        profile = insertedProfile;
+                    }
+                }
+
+                if (mounted) {
+                    setUser(
+                        profile
+                            ? buildUser(profile, email)
+                            : {
+                                id: authUser.id,
+                                email,
+                                name: metadata.full_name || metadata.name || email.split("@")[0] || "",
+                                handle: "",
+                                role: "user",
+                                avatar: metadata.avatar_url || metadata.picture || "",
+                            }
+                    );
                 }
             } catch (err) {
                 console.error("Unexpected error fetching profile:", err);
@@ -76,10 +134,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Use onAuthStateChange as the single source of truth for auth state.
         // INITIAL_SESSION fires after the client reads cookies and restores the session.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                fetchProfile(session.user);
+            } else if (mounted) {
+                setUser(null);
+                setIsLoading(false);
+            }
+        });
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (session?.user) {
-                    await fetchProfile(session.user.id, session.user.email || "");
+                    await fetchProfile(session.user);
                 } else {
                     if (mounted) {
                         setUser(null);
@@ -93,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             mounted = false;
             subscription.unsubscribe();
         };
-    }, []);
+    }, [supabase]);
 
     const loginWithMagicLink = async (email: string) => {
         try {
@@ -105,8 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             if (error) throw error;
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: getErrorMessage(error) };
         }
     };
 
@@ -124,8 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             if (error) throw error;
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: getErrorMessage(error) };
         }
     };
 
@@ -142,12 +209,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-            const updates: Record<string, any> = {};
-            for (const [key, value] of Object.entries(fields)) {
-                if (value !== undefined) {
-                    updates[key] = value;
-                }
-            }
+            const updates: Partial<Omit<AuthUser, "id" | "email" | "role">> = {};
+            if (fields.name !== undefined) updates.name = fields.name;
+            if (fields.handle !== undefined) updates.handle = fields.handle;
+            if (fields.avatar !== undefined) updates.avatar = fields.avatar;
+            if (fields.banner_image !== undefined) updates.banner_image = fields.banner_image;
+            if (fields.social_instagram !== undefined) updates.social_instagram = fields.social_instagram;
+            if (fields.social_tiktok !== undefined) updates.social_tiktok = fields.social_tiktok;
+            if (fields.social_x !== undefined) updates.social_x = fields.social_x;
+            if (fields.favorite_concert_ids !== undefined) updates.favorite_concert_ids = fields.favorite_concert_ids;
 
             const { error } = await supabase
                 .from("profiles")
@@ -163,8 +233,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             setUser({ ...user, ...updates });
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: getErrorMessage(error) };
         }
     };
 

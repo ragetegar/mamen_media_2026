@@ -53,7 +53,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${inter.variable} ${oswald.variable}`} suppressHydrationWarning>
-      <body className="bg-mamen-black text-mamen-white font-body antialiased transition-colors duration-300" suppressHydrationWarning>
+      <body className="bg-mamen-black text-mamen-white font-body antialiased transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <AuthGuard>

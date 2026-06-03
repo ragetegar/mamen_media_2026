@@ -3,7 +3,10 @@ import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "your-anon-key";
+const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "your-anon-key";
 
 // ── Browser client (for "use client" components) ──
 // Uses cookies for session storage — persists across page refreshes
@@ -47,7 +50,10 @@ export async function createServerSupabase() {
 
 // ── Service role client (for admin operations) ──
 export function createServiceRoleClient() {
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+        throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for admin operations");
+    }
     return createClient(supabaseUrl, serviceRoleKey);
 }
 
