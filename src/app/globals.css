@@ -1,0 +1,224 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   MAMEN.ID — Design Token System & Theme Support
+   Street-editorial meets concert culture. Loud, punchy, clean.
+   Now with full automatic Light/Dark mode via next-themes.
+   ═══════════════════════════════════════════════════════════ */
+
+@theme inline {
+  /* ── Map Tailwind colors to semantic CSS variables ── */
+  --color-mamen-black: var(--bg-primary);
+  --color-mamen-white: var(--text-primary);
+  --color-mamen-gray-50: var(--bg-mute-4);
+  --color-mamen-gray-100: var(--bg-mute-3);
+  --color-mamen-gray-200: var(--text-muted);
+  --color-mamen-gray-700: var(--border-muted);
+  --color-mamen-gray-800: var(--bg-mute-2);
+  --color-mamen-gray-900: var(--bg-mute-1);
+
+  /* ── Neon Accents ── */
+  --color-mamen-purple: var(--accent-purple);
+  --color-mamen-magenta: var(--accent-magenta);
+  --color-mamen-lime: var(--accent-lime);
+  --color-mamen-purple-light: #9B6EFF;
+  --color-mamen-magenta-light: #FF4DD8;
+
+  /* ── Font Families ── */
+  --font-headline: "Oswald", "Impact", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* ── Shadows (mapped to dynamic color) ── */
+  --shadow-hard: 6px 6px 0px var(--shadow-color);
+  --shadow-hard-sm: 4px 4px 0px var(--shadow-color);
+  --shadow-hard-hover: 3px 3px 0px var(--shadow-color);
+  --shadow-hard-purple: 6px 6px 0px var(--accent-purple);
+  --shadow-hard-magenta: 6px 6px 0px var(--accent-magenta);
+  --shadow-hard-lime: 6px 6px 0px var(--accent-lime);
+}
+
+/* ── Light Theme (Default fallback & strict override) ── */
+:root,
+.light,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-primary: #FFFFFF;
+  --text-primary: #000000;
+
+  /* Background gradients mapped for light mode */
+  --bg-mute-1: #F5F5F5;
+  --bg-mute-2: #EAEAEA;
+  --bg-mute-3: #1A1A1A;
+  /* Inverted contrast elements */
+  --bg-mute-4: #111111;
+  /* Dark details */
+
+  /* Text & borders */
+  --text-muted: #555555;
+  --border-muted: #CCCCCC;
+
+  /* Accents */
+  --accent-purple: #7B3EFF;
+  --accent-magenta: #FF00C8;
+  --accent-lime: #00D150;
+  /* Lime adjusted for better contrast on white */
+
+  --shadow-color: #000000;
+}
+
+/* ── Dark Theme (Strict override) ── */
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --text-primary: #FFFFFF;
+
+  --bg-mute-1: #111111;
+  --bg-mute-2: #1A1A1A;
+  --bg-mute-3: #EAEAEA;
+  --bg-mute-4: #F5F5F5;
+
+  --text-muted: #CCCCCC;
+  --border-muted: #333333;
+
+  --accent-purple: #7B3EFF;
+  --accent-magenta: #FF00C8;
+  --accent-lime: #C6FF00;
+
+  --shadow-color: #000000;
+  /* Keeping shadows black for that distinct border look, even on dark grey cards */
+}
+
+/* ── Base Styles ── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Marquee Animation ── */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+/* ── Typography ── */
+.font-headline {
+  font-family: var(--font-headline);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ── Hard Border Card ── */
+.card-frame {
+  border: 4px solid var(--text-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.card-frame:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0px var(--shadow-color);
+}
+
+/* ── Tag/Badge Styles ── */
+.badge-lime {
+  background: var(--accent-lime);
+  color: #000000;
+  font-weight: 800;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-magenta {
+  background: var(--accent-magenta);
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-purple {
+  background: var(--accent-purple);
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Diagonal Block ── */
+.diagonal-block {
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+}
+
+.diagonal-block-reverse {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 85%);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-mute-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-magenta);
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--accent-purple);
+  color: #FFFFFF;
+}
+
+/* ── Merchant Colors ── */
+.merchant-shopee {
+  background: #EE4D2D;
+  color: white;
+}
+
+.merchant-tokopedia {
+  background: #42B549;
+  color: white;
+}
+
+.merchant-tiktok {
+  background: #000000;
+  color: #25F4EE;
+  border: 2px solid #25F4EE;
+}

@@ -1,0 +1,80 @@
+"use client";
+
+import { useState } from "react";
+
+export default function NewsletterBlock() {
+    const [email, setEmail] = useState("");
+    const [submitted, setSubmitted] = useState(false);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (email) {
+            setSubmitted(true);
+            setEmail("");
+            // TODO: Submit to Supabase newsletter_subscribers table
+        }
+    };
+
+    return (
+        <section className="relative overflow-hidden">
+            {/* Neon background */}
+            <div className="bg-mamen-purple">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+                    <div className="relative z-10 max-w-2xl mx-auto text-center">
+                        {/* Stacked headline */}
+                        <h2 className="font-headline text-5xl sm:text-6xl md:text-8xl font-black leading-[0.9] text-mamen-white">
+                            JOIN
+                            <br />
+                            THE
+                            <br />
+                            <span className="text-mamen-lime">CROWD</span>
+                            <span className="text-mamen-magenta">.</span>
+                        </h2>
+
+                        <p className="mt-6 text-lg text-white/80">
+                            Gig alerts, drops, secret shows — straight to your inbox.
+                        </p>
+
+                        {submitted ? (
+                            <div className="mt-8 border-4 border-mamen-lime bg-mamen-black p-6 shadow-hard-lime">
+                                <p className="font-headline text-xl font-bold text-mamen-lime">
+                                    YOU&apos;RE IN! 🔥
+                                </p>
+                                <p className="mt-2 text-sm text-mamen-gray-200">
+                                    Welcome to the crowd. Check your inbox for a confirmation.
+                                </p>
+                            </div>
+                        ) : (
+                            <form
+                                onSubmit={handleSubmit}
+                                className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto"
+                            >
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="your@email.com"
+                                    required
+                                    className="flex-1 px-5 py-4 bg-mamen-black border-4 border-mamen-black text-mamen-white placeholder:text-mamen-gray-700 font-medium text-sm shadow-hard focus:outline-none focus:border-mamen-lime focus:shadow-hard-lime transition-all"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-8 py-4 bg-mamen-lime text-mamen-black font-headline font-bold text-sm uppercase tracking-wider border-4 border-mamen-black shadow-hard hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_#000000] transition-all duration-150 cursor-pointer"
+                                >
+                                    Subscribe
+                                </button>
+                            </form>
+                        )}
+
+                        <p className="mt-4 text-xs text-white/50">
+                            By subscribing you agree to our Privacy Policy.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Diagonal accent at bottom */}
+            <div className="h-4 bg-mamen-magenta" />
+        </section>
+    );
+}
