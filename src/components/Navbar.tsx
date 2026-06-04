@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, Search, ChevronDown, LogIn, LogOut, User, MessageCircle } from "lucide-react";
 import { NAV_CATEGORIES } from "@/lib/types";
@@ -24,10 +24,6 @@ export default function Navbar() {
     const mobileUserMenuRef = useRef<HTMLDivElement>(null);
     const { user, logout, isLoading } = useAuth();
     const { unreadCount } = useUnreadCount();
-
-    // Track client-side mount to avoid hydration mismatch on auth-dependent UI
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => { setMounted(true); }, []);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -112,7 +108,7 @@ export default function Navbar() {
                             <ThemeToggle />
 
                             {/* Messages Icon (desktop) */}
-                            {mounted && user && (
+                            {user && (
                                 <Link
                                     href="/messages"
                                     className="relative text-mamen-gray-200 hover:text-mamen-lime transition-colors duration-200"
@@ -133,13 +129,11 @@ export default function Navbar() {
                             </button>
 
                             {/* User Auth */}
-                            {!mounted || isLoading ? (
-                                <button
-                                    onClick={() => setLoginOpen(true)}
-                                    className="flex items-center gap-1.5 font-headline text-xs font-bold tracking-widest text-mamen-gray-200 hover:text-mamen-lime transition-colors cursor-pointer"
-                                >
-                                    <LogIn size={15} /> LOGIN
-                                </button>
+                            {isLoading ? (
+                                <div
+                                    className="w-8 h-8 rounded-full bg-mamen-gray-800 border border-mamen-gray-700 animate-pulse"
+                                    aria-label="Loading user"
+                                />
                             ) : user ? (
                                 <div className="relative" ref={userMenuRef}>
                                     <button
@@ -214,7 +208,7 @@ export default function Navbar() {
                         {/* Mobile Toggle */}
                         <div className="lg:hidden flex items-center gap-3">
                             {/* Messages icon (mobile top bar) */}
-                            {mounted && user && (
+                            {user && (
                                 <Link
                                     href="/messages"
                                     className="relative text-mamen-white hover:text-mamen-lime transition-colors"
@@ -234,14 +228,11 @@ export default function Navbar() {
                             </button>
 
                             {/* Mobile user avatar / login */}
-                            {!mounted || isLoading ? (
-                                <button
-                                    onClick={() => setLoginOpen(true)}
-                                    className="text-mamen-white hover:text-mamen-lime transition-colors cursor-pointer"
-                                    aria-label="Login"
-                                >
-                                    <LogIn size={22} />
-                                </button>
+                            {isLoading ? (
+                                <div
+                                    className="w-8 h-8 rounded-full bg-mamen-gray-800 border border-mamen-gray-700 animate-pulse"
+                                    aria-label="Loading user"
+                                />
                             ) : user ? (
                                 <div className="relative" ref={mobileUserMenuRef}>
                                     <button

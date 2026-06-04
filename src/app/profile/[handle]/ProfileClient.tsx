@@ -5,10 +5,8 @@ import { useAuth, AuthUser } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import {
     Settings, Save, X, CalendarDays, History, Star,
-    Instagram, ExternalLink, MessageCircle
+    Instagram, MessageCircle
 } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProfileComments from "./ProfileComments";
 import ProfileConcerts from "./ProfileConcerts";
@@ -43,11 +41,11 @@ function XIcon({ size = 16 }: { size?: number }) {
 }
 
 export default function ProfileClient({ handle }: ProfileClientProps) {
-    const { user, updateProfile, isLoading } = useAuth();
+    const { user, updateProfile } = useAuth();
     const router = useRouter();
 
     const [profileUser, setProfileUser] = useState<AuthUser | null>(null);
-    const [canMessage, setCanMessage] = useState(false);
+    const [messagePermission, setMessagePermission] = useState<{ profileId: string; canMessage: boolean } | null>(null);
     const [startingDm, setStartingDm] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState("");
@@ -71,13 +69,9 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
     const [showFollowList, setShowFollowList] = useState(false);
     const [followListMode, setFollowListMode] = useState<"followers" | "following">("followers");
 
-    // ─── Fetch profile by handle IMMEDIATELY on mount (independent of auth) ───
+    // Fetch profile by handle immediately. Profiles are public; auth only enables owner actions.
     useEffect(() => {
         let mounted = true;
-
-        if (!user && !isLoading) {
-            // Wait for auth to resolve. If no user, it's handled by rendering early return.
-        }
 
         const fetchProfile = async () => {
             try {
@@ -153,16 +147,20 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
     }, [handle]);
 
     const isOwner = user?.handle?.toLowerCase() === profileUser?.handle?.toLowerCase();
+    const canMessage = messagePermission && messagePermission.profileId === profileUser?.id
+        ? messagePermission.canMessage
+        : false;
 
     // Check mutual follow for Message button
     useEffect(() => {
         if (!user || !profileUser || isOwner) {
-            setCanMessage(false);
             return;
         }
         let mounted = true;
         isMutualFollow(user.id, profileUser.id).then((mutual) => {
-            if (mounted) setCanMessage(mutual);
+            if (mounted) {
+                setMessagePermission({ profileId: profileUser.id, canMessage: mutual });
+            }
         });
         return () => { mounted = false; };
     }, [user, profileUser, isOwner]);
@@ -208,23 +206,6 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
             setError(result.error || "Failed to update profile");
         }
     };
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center py-20">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-mamen-purple"></div>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return (
-            <div className="text-center py-20">
-                <h1 className="font-headline text-3xl font-black text-mamen-white mb-4">Login Required</h1>
-                <p className="text-mamen-gray-200">You must be logged in to view profiles.</p>
-            </div>
-        );
-    }
 
     if (!profileUser && !error) {
         return (
@@ -339,7 +320,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                         {!isOwner && profileUser && (
                             <div className="shrink-0 flex items-center gap-2">
                                 <FollowButton targetUserId={profileUser.id} />
-                                {canMessage && (
+                                {user && canMessage && (
                                     <button
                                         onClick={handleStartDm}
                                         disabled={startingDm}

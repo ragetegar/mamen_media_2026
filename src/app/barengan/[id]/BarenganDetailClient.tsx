@@ -22,6 +22,7 @@ import {
     rejectBarenganMember,
     sendBarenganChatMessage,
 } from "@/lib/data";
+import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
 import { Check, X, UserPlus, Users, MessageSquare, Clock } from "lucide-react";
 
 interface BarenganDetailClientProps {
@@ -48,7 +49,11 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
     const isApprovedMember = approvedMembers.some((m) => m.user_id === userId);
     const isPendingMember = pendingMembers.some((m) => m.user_id === userId);
     const hasGroupAccess = isCreator || isApprovedMember;
-    const visibleApprovedCount = hasGroupAccess ? approvedMembers.length : post.approved_count || 0;
+    const visibleMemberTotal = getBarenganMemberTotal(
+        post,
+        hasGroupAccess ? approvedMembers.length : undefined
+    );
+    const memberCapacity = getBarenganCapacity(post);
 
     // Subscribe to realtime chat messages
     const { newMessages } = useRealtimeMessages(
@@ -176,7 +181,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                 <div className="p-6">
                     <h2 className="font-headline text-lg font-bold text-mamen-white flex items-center gap-2 mb-4">
                         <Users size={18} className="text-mamen-purple" />
-                        Members ({visibleApprovedCount}/{post.max_members || post.looking_for})
+                        Members ({visibleMemberTotal}/{memberCapacity})
                     </h2>
 
                     {/* Approved Members List */}

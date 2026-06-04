@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { BarenganPost, BARENGAN_STATUS_OPTIONS } from "@/lib/types";
+import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
 import { Users, MessageCircle } from "lucide-react";
 
 interface BarenganCardProps {
@@ -13,6 +14,8 @@ export default function BarenganCard({ post }: BarenganCardProps) {
     const timeAgo = getTimeAgo(new Date(post.created_at));
 
     const isEnded = !post.is_active;
+    const memberTotal = getBarenganMemberTotal(post);
+    const memberCapacity = getBarenganCapacity(post);
 
     return (
         <Link href={`/barengan/${post.id}`} className="group block">
@@ -92,7 +95,7 @@ export default function BarenganCard({ post }: BarenganCardProps) {
                         <div className="flex items-center gap-4">
                             <span className="flex items-center gap-1">
                                 <Users size={13} />
-                                {post.approved_count || 0}/{post.max_members || post.looking_for} members
+                                {memberTotal}/{memberCapacity} members
                             </span>
                             <span className="flex items-center gap-1">
                                 <MessageCircle size={13} />

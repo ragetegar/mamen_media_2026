@@ -81,6 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 if (error) {
                     console.error("Error fetching profile:", error);
+                    if (mounted) {
+                        setUser({
+                            id: authUser.id,
+                            email,
+                            name: metadata.full_name || metadata.name || email.split("@")[0] || "",
+                            handle: "",
+                            role: "user",
+                            avatar: metadata.avatar_url || metadata.picture || "",
+                        });
+                    }
                     if (mounted) setIsLoading(false);
                     return;
                 }
@@ -132,21 +142,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         };
 
-        // Use onAuthStateChange as the single source of truth for auth state.
-        // INITIAL_SESSION fires after the client reads cookies and restores the session.
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                fetchProfile(session.user);
+        // Validate the cookie-backed session on first load so hard refreshes restore auth.
+        supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+            if (authUser) {
+                fetchProfile(authUser);
             } else if (mounted) {
+                setUser(null);
+                setIsLoading(false);
+            }
+        }).catch((error) => {
+            console.error("Error restoring auth session:", error);
+            if (mounted) {
                 setUser(null);
                 setIsLoading(false);
             }
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
+            (event, session) => {
+                if (event === "INITIAL_SESSION") return;
+
                 if (session?.user) {
-                    await fetchProfile(session.user);
+                    void fetchProfile(session.user);
                 } else {
                     if (mounted) {
                         setUser(null);

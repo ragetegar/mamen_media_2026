@@ -1,13 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
     });
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseAnonKey =
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
@@ -28,11 +30,9 @@ export async function middleware(request: NextRequest) {
         },
     });
 
-    // Refresh the session — this reads the auth cookie, validates it,
-    // and refreshes the token if needed. IMPORTANT: Do NOT remove this.
+    // Refresh the session so cookie-backed auth survives hard refreshes.
     const { data: { user } } = await supabase.auth.getUser();
 
-    // ── Route-level auth protection ──
     const protectedRoutes = ["/messages"];
     const pathname = request.nextUrl.pathname;
 

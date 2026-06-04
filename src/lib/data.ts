@@ -22,6 +22,7 @@ import {
     ConcertAttendee,
 } from "./types";
 import { createServerSupabase, getBrowserSupabase, supabase } from "./supabase";
+import { getBarenganCapacity } from "./barengan";
 
 async function getContextSupabase() {
     return typeof window === "undefined" ? await createServerSupabase() : getBrowserSupabase();
@@ -923,7 +924,7 @@ export async function createBarenganPost(post: {
         .from("barengan_posts")
         .insert({
             ...post,
-            max_members: post.looking_for,
+            max_members: post.looking_for + 1,
         })
         .select("id")
         .single();
@@ -981,8 +982,8 @@ export async function approveBarenganMember(memberId: string): Promise<{ success
     const embeddedPost = Array.isArray(memberLookup.barengan_posts)
         ? memberLookup.barengan_posts[0]
         : memberLookup.barengan_posts;
-    const maxMembers = embeddedPost?.max_members || embeddedPost?.looking_for || 1;
-    if ((count || 0) >= maxMembers) {
+    const maxMembers = getBarenganCapacity(embeddedPost || {});
+    if ((count || 0) + 1 >= maxMembers) {
         return { success: false, error: "This barengan group is already full" };
     }
 

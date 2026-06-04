@@ -3,6 +3,7 @@ import Link from "next/link";
 import Badge from "@/components/ui/Badge";
 import { BARENGAN_STATUS_OPTIONS } from "@/lib/types";
 import { getBarenganPostById } from "@/lib/data";
+import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
 import { ArrowLeft, Users, Calendar, MapPin } from "lucide-react";
 import { notFound } from "next/navigation";
 import BarenganDetailClient from "./BarenganDetailClient";
@@ -22,6 +23,8 @@ export default async function BarenganDetailPage({ params }: PageProps) {
     }
 
     const statusInfo = BARENGAN_STATUS_OPTIONS.find((s) => s.value === post.status);
+    const memberTotal = getBarenganMemberTotal(post);
+    const memberCapacity = getBarenganCapacity(post);
 
     return (
         <>
@@ -123,7 +126,7 @@ export default async function BarenganDetailPage({ params }: PageProps) {
                             <div className="flex items-center gap-6 text-sm text-mamen-gray-700">
                                 <span className="flex items-center gap-1">
                                     <Users size={14} />
-                                    {post.approved_count || 0}/{post.max_members || post.looking_for} members
+                                    {memberTotal}/{memberCapacity} members
                                 </span>
                                 <span>Looking for {post.looking_for} people</span>
                             </div>
