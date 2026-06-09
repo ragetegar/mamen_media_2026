@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070707"/>
+      <stop offset="0.55" stop-color="#161616"/>
+      <stop offset="1" stop-color="#30104f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c7ff00"/>
+      <stop offset="1" stop-color="#ff2ca8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#background)"/>
+  <path d="M1110 0h490v900H850z" fill="#ff2ca8" opacity=".13"/>
+  <path d="M1270 0h330v900h-690z" fill="#c7ff00" opacity=".08"/>
+  <circle cx="1330" cy="170" r="300" fill="none" stroke="#c7ff00" stroke-width="3" opacity=".34"/>
+  <circle cx="1330" cy="170" r="220" fill="none" stroke="#ff2ca8" stroke-width="10" opacity=".42"/>
+  <rect x="90" y="85" width="290" height="52" fill="#c7ff00"/>
+  <text x="115" y="121" fill="#070707" font-family="Arial, sans-serif" font-size="25" font-weight="900" letter-spacing="5">MAMEN SPORTS</text>
+  <text x="90" y="270" fill="#ffffff" font-family="Arial, sans-serif" font-size="64" font-weight="900" letter-spacing="3">VCT PACIFIC</text>
+  <text x="90" y="410" fill="#c7ff00" font-family="Arial, sans-serif" font-size="132" font-weight="900" letter-spacing="-5">PAPER REX</text>
+  <text x="98" y="505" fill="#ffffff" font-family="Arial, sans-serif" font-size="68" font-weight="900">JUARA STAGE 1 2026</text>
+  <rect x="90" y="565" width="880" height="7" fill="url(#accent)"/>
+  <text x="90" y="650" fill="#d6d6d6" font-family="Arial, sans-serif" font-size="36" font-weight="700">FINAL: PRX 3-0 FULL SENSE</text>
+  <text x="90" y="710" fill="#a8a8a8" font-family="Arial, sans-serif" font-size="28">Empat gelar Pacific beruntun, f0rsakeN kembali ke London</text>
+  <text x="90" y="820" fill="#ffffff" font-family="Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="5">SPORTS / ESPORTS</text>
+  <text x="1330" y="210" fill="#ffffff" text-anchor="middle" font-family="Arial, sans-serif" font-size="120" font-weight="900">3-0</text>
+  <text x="1330" y="270" fill="#c7ff00" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="800" letter-spacing="6">GRAND FINAL</text>
+</svg>

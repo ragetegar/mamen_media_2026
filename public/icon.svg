@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B3EFF" />
+      <stop offset="100%" stop-color="#FF00C8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Solid Black Background -->
+  <rect width="512" height="512" fill="#000000" />
+  
+  <!-- Brutalist Offset Underlay Border (Lime) -->
+  <rect x="36" y="36" width="440" height="440" fill="none" stroke="#C6FF00" stroke-width="16" />
+  
+  <!-- Brutalist Primary Overlay Border (Neon Purple-to-Magenta) -->
+  <rect x="24" y="24" width="440" height="440" fill="none" stroke="url(#neonGrad)" stroke-width="16" />
+  
+  <!-- Stylized M shape -->
+  <!-- We use thick, blocky strokes to represent the 'M' with a brutalist street-culture aesthetic -->
+  <g>
+    <!-- Left Pillar -->
+    <rect x="110" y="130" width="54" height="250" fill="url(#neonGrad)" />
+    
+    <!-- Right Pillar -->
+    <rect x="348" y="130" width="54" height="250" fill="url(#neonGrad)" />
+    
+    <!-- Left Diagonal -->
+    <polygon points="164,130 256,260 256,330 164,200" fill="url(#neonGrad)" />
+    
+    <!-- Right Diagonal -->
+    <polygon points="348,130 256,260 256,330 348,200" fill="url(#neonGrad)" />
+  </g>
+
+  <!-- Accent Accent Lightning Bolt (Lime) to symbolize live music and energy -->
+  <path d="M256 320 L236 390 H276 L256 450" fill="#C6FF00" stroke="#C6FF00" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+</svg>

@@ -7,6 +7,9 @@ import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth-context";
 import AuthGuard from "@/components/AuthGuard";
+import PWARegistration from "@/components/PWARegistration";
+import type { Viewport } from "next";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -20,6 +23,10 @@ const oswald = Oswald({
   display: "swap",
   weight: ["400", "500", "600", "700"],
 });
+
+export const viewport: Viewport = {
+  themeColor: "#7B3EFF",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -35,6 +42,9 @@ export const metadata: Metadata = {
     "concert review",
     "Jabodetabek events",
     "indie music Indonesia",
+    "mamen indonesia",
+    "mamen",
+    "mamen.id"
   ],
   openGraph: {
     type: "website",
@@ -42,7 +52,12 @@ export const metadata: Metadata = {
     siteName: "MAMEN",
     title: "MAMEN — Indonesian Music & Concert Culture",
     description:
-      "Your go-to platform for Indonesian music, concert culture, and everything that moves the crowd.",
+      "Your go-to platform for Indonesian music, concert culture, and everything that moves the crowd. JKT48 gaming and others too",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
   },
 };
 
@@ -54,6 +69,20 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} ${oswald.variable}`} suppressHydrationWarning>
       <body className="bg-mamen-black text-mamen-white font-body antialiased transition-colors duration-300">
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-E0BS1D856V"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-E0BS1D856V');
+          `}
+        </Script>
+        <PWARegistration />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <AuthGuard>
