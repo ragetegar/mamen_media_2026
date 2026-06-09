@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getArticleHref } from "@/lib/article-taxonomy";
 import { MessageCircle } from "lucide-react";
 import { getArticles } from "@/lib/data";
+import { Article } from "@/lib/types";
 
 interface Comment {
     id: string;
@@ -16,21 +18,20 @@ interface Comment {
 }
 
 export default function ProfileComments({ userId }: { userId: string }) {
-    const [comments, setComments] = useState<Comment[]>([]);
-    const [articles, setArticles] = useState<any[]>([]);
-
-    useEffect(() => {
-        if (!userId) return;
+    const [comments] = useState<Comment[]>(() => {
+        if (!userId || typeof window === "undefined") return [];
         try {
             const raw = localStorage.getItem("mamen_comments");
-            if (raw) {
-                const all: Comment[] = JSON.parse(raw);
-                setComments(all.filter((c) => c.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-            }
+            if (!raw) return [];
+            const all: Comment[] = JSON.parse(raw);
+            return all
+                .filter((comment) => comment.userId === userId)
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         } catch {
-            // ignore
+            return [];
         }
-    }, [userId]);
+    });
+    const [articles, setArticles] = useState<Article[]>([]);
 
     useEffect(() => {
         async function fetchArticles() {
@@ -60,7 +61,7 @@ export default function ProfileComments({ userId }: { userId: string }) {
             {comments.map((comment) => {
                 const article = articles.find(a => a.id === comment.articleId);
                 const title = article ? article.title : "Unknown Article";
-                const href = article ? `/media/${article.slug}` : `/media/${comment.articleId}`;
+                const href = article ? getArticleHref(article) : "/";
 
                 return (
                     <div key={comment.id} className="p-4 bg-mamen-gray-900 border border-mamen-gray-800">

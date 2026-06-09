@@ -2,6 +2,7 @@
 
 import { createServerSupabase, createServiceRoleClient } from "@/lib/supabase";
 import { Article, ArticleProduct, Concert, FeaturedBrand, Merchant } from "@/lib/types";
+import { isValidArticleTaxonomy } from "@/lib/article-taxonomy";
 
 type AdminRole = "admin" | "contributor";
 
@@ -47,6 +48,12 @@ async function assertCanWriteArticle(articleId: string, role: AdminRole, userId:
 
 function normalizeBrandName(name: string) {
     return name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+function assertValidArticleTaxonomy(category: string, subcategory: string) {
+    if (!isValidArticleTaxonomy(category, subcategory)) {
+        throw new Error("Article category and subcategory do not match the editorial taxonomy");
+    }
 }
 
 async function resolveBrandId(
@@ -170,6 +177,7 @@ export async function getAdminDashboardData() {
 
 export async function createArticle(article: Omit<Article, "id" | "created_at" | "updated_at">) {
     const { supabase, user, profile } = await getAdminContext();
+    assertValidArticleTaxonomy(article.category, article.subcategory);
     const { data, error } = await supabase
         .from("articles")
         .insert({
@@ -206,6 +214,19 @@ export async function updateArticle(id: string, updates: Partial<Article>) {
     if (profile.role === "contributor") {
         delete safeUpdates.author_id;
         delete safeUpdates.author;
+    }
+
+    if (safeUpdates.category || safeUpdates.subcategory) {
+        const { data: existing, error: existingError } = await supabase
+            .from("articles")
+            .select("category, subcategory")
+            .eq("id", id)
+            .single();
+        if (existingError || !existing) throw new Error("Failed to validate article taxonomy");
+        assertValidArticleTaxonomy(
+            safeUpdates.category || existing.category,
+            safeUpdates.subcategory || existing.subcategory,
+        );
     }
 
     const { data, error } = await supabase

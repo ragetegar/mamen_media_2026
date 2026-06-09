@@ -177,7 +177,7 @@ export default function AdminDashboard() {
                                     </td>
                                     <td className="px-4 py-3 hidden md:table-cell">
                                         <span className="text-xs font-bold uppercase tracking-wider text-mamen-purple">
-                                            {article.category}
+                                            {article.category} / {article.subcategory}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 hidden md:table-cell">

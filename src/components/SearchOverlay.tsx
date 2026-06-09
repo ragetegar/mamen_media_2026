@@ -6,6 +6,7 @@ import { getArticles } from "@/lib/data";
 import { Article } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
+import { getArticleCategoryLabel, getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 
 interface SearchOverlayProps {
     isOpen: boolean;
@@ -26,6 +27,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 a.title.toLowerCase().includes(lower) ||
                 a.excerpt.toLowerCase().includes(lower) ||
                 a.category.toLowerCase().includes(lower) ||
+                a.subcategory.toLowerCase().includes(lower) ||
                 a.author.toLowerCase().includes(lower) ||
                 (a.tags && a.tags.some((t) => t.toLowerCase().includes(lower)))
         ).slice(0, 6);
@@ -112,7 +114,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                         className={`border-b border-mamen-gray-800 last:border-b-0 ${i === 0 ? "" : ""}`}
                                     >
                                         <Link
-                                            href={`/${article.category}/${article.slug}`}
+                                            href={getArticleHref(article)}
                                             onClick={handleClose}
                                             className="flex items-center gap-4 px-5 py-4 hover:bg-mamen-gray-800 transition-colors group"
                                         >
@@ -131,7 +133,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-0.5">
                                                     <span className="text-xs text-mamen-purple font-bold uppercase tracking-wider">
-                                                        {article.category}
+                                                        {getArticleCategoryLabel(article.category)} / {getArticleSubcategoryLabel(article)}
                                                     </span>
                                                     <span className="text-mamen-gray-700 text-xs">•</span>
                                                     <span className="text-xs text-mamen-gray-200">

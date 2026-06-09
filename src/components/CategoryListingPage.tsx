@@ -1,7 +1,8 @@
 import ArticleTile from "@/components/ArticleTile";
 import SectionHeader from "@/components/SectionHeader";
 import { getArticles } from "@/lib/data";
-import { ArticleCategory } from "@/lib/types";
+import { getArticleSubcategoryHref } from "@/lib/article-taxonomy";
+import { ArticleCategory, ArticleSubcategory } from "@/lib/types";
 import Link from "next/link";
 
 interface CategoryListingPageProps {
@@ -9,8 +10,8 @@ interface CategoryListingPageProps {
     title: string;
     highlight: string;
     description: string;
-    subcategories: { value: string; label: string }[];
-    activeSub?: string | null;
+    subcategories: readonly { value: ArticleSubcategory; label: string }[];
+    activeSub?: ArticleSubcategory | null;
 }
 
 export default async function CategoryListingPage({
@@ -53,7 +54,7 @@ export default async function CategoryListingPage({
                             {subcategories.map((sub) => (
                                 <Link
                                     key={sub.value}
-                                    href={`/${category}?sub=${sub.value}`}
+                                    href={getArticleSubcategoryHref(category, sub.value)}
                                     className={`font-headline text-xs font-bold tracking-widest uppercase px-4 py-2 shrink-0 border-2 transition-all ${activeSub === sub.value
                                         ? "bg-mamen-lime text-mamen-black border-mamen-black shadow-hard-sm"
                                         : "bg-transparent text-mamen-gray-200 border-transparent hover:text-mamen-lime"

@@ -29,8 +29,8 @@ export default async function HomePage() {
           <SectionHeader
             title="LATEST"
             highlight="DROPS"
-            seeAllHref="/concerts"
-            seeAllLabel="Explore Concerts →"
+            seeAllHref="/music/news"
+            seeAllLabel="See All News →"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {latestArticles.map((article) => (

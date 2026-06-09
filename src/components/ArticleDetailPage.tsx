@@ -13,9 +13,9 @@ import {
 import { Copy, Share2 } from "lucide-react";
 import ArticlePageClient from "@/app/media/[slug]/ArticlePageClient";
 import { ArticleCategory } from "@/lib/types";
+import { getArticleCategoryLabel, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
-    news: "lime",
     music: "purple",
     lifestyle: "lime",
     sports: "magenta",
@@ -25,14 +25,18 @@ const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
 interface ArticleDetailPageProps {
     slug: string;
     expectedCategory?: ArticleCategory;
+    expectedSubcategory?: string;
 }
 
-export default async function ArticleDetailPage({ slug, expectedCategory }: ArticleDetailPageProps) {
+export default async function ArticleDetailPage({ slug, expectedCategory, expectedSubcategory }: ArticleDetailPageProps) {
     const article = await getArticleBySlug(slug);
     if (!article) notFound();
 
     // If expectedCategory is set, validate the article belongs to this category
-    if (expectedCategory && article.category !== expectedCategory) {
+    if (
+        (expectedCategory && article.category !== expectedCategory)
+        || (expectedSubcategory && article.subcategory !== expectedSubcategory)
+    ) {
         notFound();
     }
 
@@ -59,9 +63,13 @@ export default async function ArticleDetailPage({ slug, expectedCategory }: Arti
                 {/* Title overlay */}
                 <div className="absolute bottom-0 left-0 right-0">
                     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-                        <Badge variant={categoryBadgeVariant[article.category] || "lime"} className="mb-4">
-                            {article.category}
-                        </Badge>
+                        <div className="mb-4 flex items-center gap-2 font-headline text-xs font-bold uppercase tracking-widest">
+                            <span className="text-mamen-gray-200">{getArticleCategoryLabel(article.category)}</span>
+                            <span className="text-mamen-gray-700">/</span>
+                            <Badge variant={categoryBadgeVariant[article.category] || "lime"}>
+                                {getArticleSubcategoryLabel(article)}
+                            </Badge>
+                        </div>
                         <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl font-black leading-[1.05] text-mamen-white">
                             {article.title}
                         </h1>

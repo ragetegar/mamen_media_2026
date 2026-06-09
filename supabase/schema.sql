@@ -11,8 +11,8 @@ CREATE TABLE articles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('news', 'music', 'lifestyle', 'sports', 'hobbies')),
-  subcategory TEXT,
+  category TEXT NOT NULL CHECK (category IN ('music', 'lifestyle', 'sports', 'hobbies')),
+  subcategory TEXT NOT NULL,
   cover_image TEXT NOT NULL DEFAULT '',
   excerpt TEXT NOT NULL DEFAULT '',
   body_html TEXT NOT NULL DEFAULT '',
@@ -26,6 +26,13 @@ CREATE TABLE articles (
   linked_concert_ids UUID[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE articles ADD CONSTRAINT articles_taxonomy_check CHECK (
+  (category = 'music' AND subcategory IN ('review', 'news', 'merch'))
+  OR (category = 'lifestyle' AND subcategory IN ('fashion', 'sneaker', 'health'))
+  OR (category = 'sports' AND subcategory IN ('football', 'basketball', 'esports'))
+  OR (category = 'hobbies' AND subcategory IN ('gaming', 'anime', 'jkt48'))
 );
 
 -- ── Article Products (Affiliate Blocks) ──

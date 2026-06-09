@@ -2,21 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { Article } from "@/lib/types";
+import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
-    news: "lime",
     music: "purple",
     lifestyle: "lime",
     sports: "magenta",
     hobbies: "lime",
-};
-
-const categoryLabel: Record<string, string> = {
-    news: "News",
-    music: "Music",
-    lifestyle: "Lifestyle",
-    sports: "Sports",
-    hobbies: "Hobbies",
 };
 
 interface ArticleTileProps {
@@ -25,7 +17,7 @@ interface ArticleTileProps {
 
 export default function ArticleTile({ article }: ArticleTileProps) {
     return (
-        <Link href={`/${article.category}/${article.slug}`} className="group block">
+        <Link href={getArticleHref(article)} className="group block">
             <div className="card-frame overflow-hidden">
                 {/* Image */}
                 <div className="relative aspect-[16/10] overflow-hidden">
@@ -38,7 +30,7 @@ export default function ArticleTile({ article }: ArticleTileProps) {
                     />
                     <div className="absolute top-3 left-3">
                         <Badge variant={categoryBadgeVariant[article.category] || "lime"}>
-                            {categoryLabel[article.category] || article.category}
+                            {getArticleSubcategoryLabel(article)}
                         </Badge>
                     </div>
                 </div>

@@ -8,7 +8,7 @@ export interface Article {
     slug: string;
     title: string;
     category: ArticleCategory;
-    subcategory?: string;
+    subcategory: ArticleSubcategory;
     cover_image: string;
     excerpt: string;
     body_html: string;
@@ -25,14 +25,26 @@ export interface Article {
 }
 
 export type ArticleCategory =
-    | "news"
     | "music"
     | "lifestyle"
     | "sports"
     | "hobbies";
 
+export type ArticleSubcategory =
+    | "review"
+    | "news"
+    | "merch"
+    | "fashion"
+    | "sneaker"
+    | "health"
+    | "football"
+    | "basketball"
+    | "esports"
+    | "gaming"
+    | "anime"
+    | "jkt48";
+
 export const ARTICLE_CATEGORIES: { value: ArticleCategory; label: string }[] = [
-    { value: "news", label: "News" },
     { value: "music", label: "Music" },
     { value: "lifestyle", label: "Lifestyle" },
     { value: "sports", label: "Sports" },
@@ -56,36 +68,36 @@ export const NAV_CATEGORIES = [
         label: "Music",
         href: "/music",
         subcategories: [
-            { label: "Music Review", href: "/music?sub=review" },
-            { label: "News", href: "/music?sub=news" },
-            { label: "Merch", href: "/music?sub=merch" },
+            { label: "Music Review", href: "/music/review" },
+            { label: "News", href: "/music/news" },
+            { label: "Merch", href: "/music/merch" },
         ],
     },
     {
         label: "Lifestyle",
         href: "/lifestyle",
         subcategories: [
-            { label: "Fashion", href: "/lifestyle?sub=fashion" },
-            { label: "Sneakers", href: "/lifestyle?sub=sneaker" },
-            { label: "Health", href: "/lifestyle?sub=health" },
+            { label: "Fashion", href: "/lifestyle/fashion" },
+            { label: "Sneakers", href: "/lifestyle/sneaker" },
+            { label: "Health", href: "/lifestyle/health" },
         ],
     },
     {
         label: "Sports",
         href: "/sports",
         subcategories: [
-            { label: "Football", href: "/sports?sub=football" },
-            { label: "Basketball", href: "/sports?sub=basketball" },
-            { label: "Esports", href: "/sports?sub=esports" },
+            { label: "Football", href: "/sports/football" },
+            { label: "Basketball", href: "/sports/basketball" },
+            { label: "Esports", href: "/sports/esports" },
         ],
     },
     {
         label: "Hobbies",
         href: "/hobbies",
         subcategories: [
-            { label: "Gaming", href: "/hobbies?sub=gaming" },
-            { label: "Anime", href: "/hobbies?sub=anime" },
-            { label: "JKT48", href: "/hobbies?sub=jkt48" },
+            { label: "Gaming", href: "/hobbies/gaming" },
+            { label: "Anime", href: "/hobbies/anime" },
+            { label: "JKT48", href: "/hobbies/jkt48" },
         ],
     },
 ];

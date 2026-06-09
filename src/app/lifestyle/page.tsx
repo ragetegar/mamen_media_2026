@@ -1,16 +1,12 @@
 import CategoryListingPage from "@/components/CategoryListingPage";
+import { ARTICLE_TAXONOMY } from "@/lib/article-taxonomy";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Lifestyle",
     description: "Fashion, sneakers, health, and everything lifestyle from the Indonesian scene.",
 };
-
-const subcategories = [
-    { value: "fashion", label: "Fashion" },
-    { value: "sneaker", label: "Sneakers" },
-    { value: "health", label: "Health" },
-];
 
 interface PageProps {
     searchParams: Promise<{ sub?: string }>;
@@ -18,14 +14,14 @@ interface PageProps {
 
 export default async function LifestylePage({ searchParams }: PageProps) {
     const { sub } = await searchParams;
+    if (sub) notFound();
     return (
         <CategoryListingPage
             category="lifestyle"
             title="ALL"
             highlight="LIFESTYLE"
             description="Fashion, sneakers, health, and everything lifestyle from the Indonesian scene."
-            subcategories={subcategories}
-            activeSub={sub || null}
+            subcategories={ARTICLE_TAXONOMY.lifestyle}
         />
     );
 }

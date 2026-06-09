@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Article, ArticleCategory, ARTICLE_CATEGORIES, ArticleProduct, Concert, FeaturedBrand } from "@/lib/types";
+import { Article, ArticleCategory, ARTICLE_CATEGORIES, ArticleProduct, ArticleSubcategory, Concert, FeaturedBrand } from "@/lib/types";
+import { ARTICLE_TAXONOMY, getArticleHref } from "@/lib/article-taxonomy";
 import { Trash2, Edit, Plus, X, Save, ExternalLink, RefreshCw } from "lucide-react";
 import {
     getAdminArticleData,
@@ -39,42 +40,14 @@ interface ArticleFormData {
     status: "published" | "draft";
     published_at: string;
     linked_concert_ids: string[];
-    subcategory?: string;
+    subcategory: ArticleSubcategory;
 }
-
-const SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
-    news: [
-        { value: "concert", label: "Concert News" },
-        { value: "guide", label: "Guide" },
-        { value: "general", label: "General News" },
-    ],
-    music: [
-        { value: "review", label: "Music Review" },
-        { value: "news", label: "News" },
-        { value: "merch", label: "Merch" },
-    ],
-    lifestyle: [
-        { value: "fashion", label: "Fashion" },
-        { value: "sneaker", label: "Sneakers" },
-        { value: "health", label: "Health" },
-    ],
-    sports: [
-        { value: "football", label: "Football" },
-        { value: "basketball", label: "Basketball" },
-        { value: "esports", label: "Esports" },
-    ],
-    hobbies: [
-        { value: "gaming", label: "Gaming" },
-        { value: "anime", label: "Anime" },
-        { value: "jkt48", label: "JKT48" },
-    ]
-};
 
 const emptyForm: ArticleFormData = {
     title: "",
     slug: "",
     category: "music",
-    subcategory: "",
+    subcategory: "review",
     cover_image: "",
     excerpt: "",
     body_html: "",
@@ -169,7 +142,7 @@ export default function AdminArticlesPage() {
             title: article.title,
             slug: article.slug,
             category: article.category,
-            subcategory: article.subcategory || "",
+            subcategory: article.subcategory,
             cover_image: article.cover_image,
             excerpt: article.excerpt,
             body_html: article.body_html,
@@ -186,7 +159,7 @@ export default function AdminArticlesPage() {
     };
 
     const handleSave = async () => {
-        if (!form.title || !form.slug || isSaving) return;
+        if (!form.title || !form.slug || !form.subcategory || isSaving) return;
 
         const parsedTags = form.tags
             .split(",")
@@ -424,7 +397,10 @@ export default function AdminArticlesPage() {
                                     <select
                                         value={form.category}
                                         onChange={(e) =>
-                                            setForm({ ...form, category: e.target.value as ArticleCategory, subcategory: "" })
+                                            {
+                                                const category = e.target.value as ArticleCategory;
+                                                setForm({ ...form, category, subcategory: ARTICLE_TAXONOMY[category][0].value });
+                                            }
                                         }
                                         className={inputClasses}
                                     >
@@ -435,23 +411,20 @@ export default function AdminArticlesPage() {
                                         ))}
                                     </select>
                                 </div>
-                                {SUBCATEGORIES[form.category] && (
-                                    <div className="mt-4">
-                                        <label className={labelClasses}>Subcategory</label>
+                                <div className="mt-4">
+                                        <label className={labelClasses}>Subcategory *</label>
                                         <select
                                             value={form.subcategory}
-                                            onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
+                                            onChange={(e) => setForm({ ...form, subcategory: e.target.value as ArticleSubcategory })}
                                             className={inputClasses}
                                         >
-                                            <option value="">-- None --</option>
-                                            {SUBCATEGORIES[form.category].map((sub) => (
+                                            {ARTICLE_TAXONOMY[form.category].map((sub) => (
                                                 <option key={sub.value} value={sub.value}>
                                                     {sub.label}
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
-                                )}
                                 <div>
                                     <label className={labelClasses}>Author</label>
                                     {user?.role === "admin" && authors.length > 0 ? (
@@ -872,7 +845,7 @@ export default function AdminArticlesPage() {
                                         <div className="flex items-center justify-end gap-2">
                                             {article.status !== "draft" && (
                                                 <a
-                                                    href={`/media/${article.slug}`}
+                                                    href={getArticleHref(article)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="p-1.5 text-mamen-gray-200 hover:text-mamen-lime transition-colors cursor-pointer"

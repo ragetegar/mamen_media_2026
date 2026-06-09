@@ -2,9 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { Article } from "@/lib/types";
+import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
-    news: "lime",
     music: "purple",
     lifestyle: "lime",
     sports: "magenta",
@@ -13,18 +13,6 @@ const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "whit
     jkt48: "magenta",
     kpop: "purple",
     hobbies: "purple",
-};
-
-const categoryLabel: Record<string, string> = {
-    news: "News",
-    music: "Music",
-    lifestyle: "Lifestyle",
-    sports: "Sports",
-    gaming: "Gaming",
-    anime: "Anime",
-    jkt48: "JKT48",
-    kpop: "K-Pop",
-    hobbies: "Hobbies",
 };
 
 interface HeroBannerProps {
@@ -43,7 +31,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                     {/* Main Featured Story */}
                     <Link
-                        href={`/${featured.category}/${featured.slug}`}
+                        href={getArticleHref(featured)}
                         className="lg:col-span-7 group block"
                     >
                         <div className="relative border-4 border-mamen-white bg-mamen-gray-900 shadow-hard overflow-hidden transition-all duration-150 group-hover:translate-x-[-2px] group-hover:translate-y-[-2px] group-hover:shadow-[8px_8px_0px_var(--shadow-color)]">
@@ -59,7 +47,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                 <div className="absolute top-4 left-4">
                                     <Badge variant={categoryBadgeVariant[featured.category] || "lime"}>
-                                        {categoryLabel[featured.category] || featured.category}
+                                        {getArticleSubcategoryLabel(featured)}
                                     </Badge>
                                 </div>
                                 <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 text-white">
@@ -92,7 +80,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                         {secondary.map((article) => (
                             <Link
                                 key={article.id}
-                                href={`/${article.category}/${article.slug}`}
+                                href={getArticleHref(article)}
                                 className="group block flex-1"
                             >
                                 <div className="flex gap-3 border-4 border-mamen-white bg-mamen-gray-900 shadow-hard-sm overflow-hidden transition-all duration-150 group-hover:translate-x-[-1px] group-hover:translate-y-[-1px] group-hover:shadow-[5px_5px_0px_var(--shadow-color)] h-full">
@@ -106,7 +94,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                                         />
                                         <div className="absolute top-2 left-2">
                                             <Badge variant={categoryBadgeVariant[article.category] || "lime"}>
-                                                {categoryLabel[article.category] || article.category}
+                                                {getArticleSubcategoryLabel(article)}
                                             </Badge>
                                         </div>
                                     </div>

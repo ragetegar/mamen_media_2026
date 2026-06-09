@@ -1,16 +1,12 @@
 import CategoryListingPage from "@/components/CategoryListingPage";
+import { ARTICLE_TAXONOMY } from "@/lib/article-taxonomy";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Sports",
     description: "Football, basketball, esports, and all sports coverage from Indonesia.",
 };
-
-const subcategories = [
-    { value: "football", label: "Football" },
-    { value: "basketball", label: "Basketball" },
-    { value: "esports", label: "Esports" },
-];
 
 interface PageProps {
     searchParams: Promise<{ sub?: string }>;
@@ -18,14 +14,14 @@ interface PageProps {
 
 export default async function SportsPage({ searchParams }: PageProps) {
     const { sub } = await searchParams;
+    if (sub) notFound();
     return (
         <CategoryListingPage
             category="sports"
             title="ALL"
             highlight="SPORTS"
             description="Football, basketball, esports, and all sports coverage from Indonesia."
-            subcategories={subcategories}
-            activeSub={sub || null}
+            subcategories={ARTICLE_TAXONOMY.sports}
         />
     );
 }
