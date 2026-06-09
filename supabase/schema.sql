@@ -11,7 +11,7 @@ CREATE TABLE articles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('music', 'concerts', 'lifestyle', 'sports', 'hobbies', 'fashion', 'gaming', 'anime', 'jkt48', 'kpop', 'news', 'culture')),
+  category TEXT NOT NULL CHECK (category IN ('news', 'music', 'lifestyle', 'sports', 'hobbies')),
   subcategory TEXT,
   cover_image TEXT NOT NULL DEFAULT '',
   excerpt TEXT NOT NULL DEFAULT '',
@@ -32,6 +32,7 @@ CREATE TABLE articles (
 CREATE TABLE article_products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  brand_id UUID NOT NULL,
   merchant TEXT NOT NULL CHECK (merchant IN ('shopee', 'tokopedia', 'tiktok')),
   title TEXT NOT NULL,
   image TEXT NOT NULL DEFAULT '',
@@ -64,6 +65,7 @@ CREATE TABLE concerts (
 CREATE TABLE featured_brands (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
+  normalized_name TEXT UNIQUE NOT NULL,
   image TEXT NOT NULL DEFAULT '',
   link TEXT NOT NULL,
   tag TEXT,
@@ -71,6 +73,36 @@ CREATE TABLE featured_brands (
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE OR REPLACE FUNCTION public.normalize_brand_name(value TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+STRICT
+SET search_path = ''
+AS $$
+  SELECT lower(regexp_replace(btrim(value), '\s+', ' ', 'g'));
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_featured_brand_normalized_name()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  NEW.name := regexp_replace(btrim(NEW.name), '\s+', ' ', 'g');
+  NEW.normalized_name := public.normalize_brand_name(NEW.name);
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER set_featured_brand_normalized_name
+  BEFORE INSERT OR UPDATE OF name ON public.featured_brands
+  FOR EACH ROW EXECUTE FUNCTION public.set_featured_brand_normalized_name();
+
+ALTER TABLE article_products
+  ADD CONSTRAINT article_products_brand_id_fkey
+  FOREIGN KEY (brand_id) REFERENCES featured_brands(id) ON DELETE RESTRICT;
 
 
 
@@ -101,6 +133,7 @@ CREATE INDEX idx_concerts_start_datetime ON concerts(start_datetime);
 CREATE INDEX idx_concerts_city ON concerts(city);
 CREATE INDEX idx_concerts_type ON concerts(concert_type);
 CREATE INDEX idx_affiliate_clicks_product ON affiliate_clicks(article_product_id);
+CREATE INDEX idx_article_products_brand ON article_products(brand_id);
 
 -- ── Row Level Security ──
 ALTER TABLE articles ENABLE ROW LEVEL SECURITY;

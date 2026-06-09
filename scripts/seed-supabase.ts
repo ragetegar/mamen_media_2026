@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
-import { mockArticles, mockConcerts, mockProducts } from "../src/lib/data";
+import { mockArticles, mockConcerts, mockFeaturedBrands, mockProducts } from "../src/lib/data";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -20,6 +20,7 @@ async function seed() {
     await supabase.from("article_products").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("articles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("concerts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("featured_brands").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     console.log("Cleared existing data.");
 
     // 2. Insert Concerts
@@ -66,7 +67,37 @@ async function seed() {
     }
     console.log(`Successfully inserted ${Object.keys(articleIdMap).length} articles.`);
 
-    // 4. Insert Products
+    // 4. Insert canonical brands
+    for (const [index, brand] of mockFeaturedBrands.entries()) {
+        await supabase.from("featured_brands").insert({
+            name: brand.name,
+            normalized_name: brand.name.trim().replace(/\s+/g, " ").toLowerCase(),
+            image: brand.image,
+            link: brand.link,
+            tag: brand.tag,
+            sort_order: index + 1,
+            is_active: true,
+        });
+    }
+
+    const { data: unbranded, error: unbrandedError } = await supabase
+        .from("featured_brands")
+        .insert({
+            name: "Unbranded",
+            normalized_name: "unbranded",
+            image: "",
+            link: "/",
+            sort_order: 0,
+            is_active: false,
+        })
+        .select("id")
+        .single();
+
+    if (unbrandedError || !unbranded) {
+        throw new Error(`Failed to create fallback brand: ${unbrandedError?.message}`);
+    }
+
+    // 5. Insert Products
     let productCount = 0;
     for (const product of mockProducts) {
         const { id, article_id, ...rest } = product;
@@ -79,7 +110,7 @@ async function seed() {
 
         const { error } = await supabase
             .from("article_products")
-            .insert({ ...rest, article_id: newArticleId });
+            .insert({ ...rest, article_id: newArticleId, brand_id: unbranded.id });
 
         if (error) {
             console.error(`Error inserting product ${rest.title}:`, error.message);

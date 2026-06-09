@@ -4,28 +4,26 @@ import Badge from "@/components/ui/Badge";
 import { Article } from "@/lib/types";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
+    news: "lime",
     music: "purple",
-    concerts: "magenta",
     lifestyle: "lime",
     sports: "magenta",
     gaming: "purple",
     anime: "magenta",
     jkt48: "magenta",
     kpop: "purple",
-    news: "lime",
     hobbies: "purple",
 };
 
 const categoryLabel: Record<string, string> = {
+    news: "News",
     music: "Music",
-    concerts: "Concerts",
     lifestyle: "Lifestyle",
     sports: "Sports",
     gaming: "Gaming",
     anime: "Anime",
     jkt48: "JKT48",
     kpop: "K-Pop",
-    news: "News",
     hobbies: "Hobbies",
 };
 
@@ -45,7 +43,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                     {/* Main Featured Story */}
                     <Link
-                        href={`/media/${featured.slug}`}
+                        href={`/${featured.category}/${featured.slug}`}
                         className="lg:col-span-7 group block"
                     >
                         <div className="relative border-4 border-mamen-white bg-mamen-gray-900 shadow-hard overflow-hidden transition-all duration-150 group-hover:translate-x-[-2px] group-hover:translate-y-[-2px] group-hover:shadow-[8px_8px_0px_var(--shadow-color)]">
@@ -94,7 +92,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                         {secondary.map((article) => (
                             <Link
                                 key={article.id}
-                                href={`/media/${article.slug}`}
+                                href={`/${article.category}/${article.slug}`}
                                 className="group block flex-1"
                             >
                                 <div className="flex gap-3 border-4 border-mamen-white bg-mamen-gray-900 shadow-hard-sm overflow-hidden transition-all duration-150 group-hover:translate-x-[-1px] group-hover:translate-y-[-1px] group-hover:shadow-[5px_5px_0px_var(--shadow-color)] h-full">

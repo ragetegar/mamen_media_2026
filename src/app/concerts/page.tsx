@@ -1,5 +1,5 @@
 import SectionHeader from "@/components/SectionHeader";
-import { getConcerts, mockConcerts } from "@/lib/data";
+import { getConcerts } from "@/lib/data";
 import ConcertFilters from "./ConcertFilters";
 import { ConcertType } from "@/lib/types";
 
@@ -12,20 +12,11 @@ export default async function ConcertsPage({
     const type = (params?.type as ConcertType | "all") || "all";
 
     // Fetch initial data on the server — instant HTML
-    let concerts = await getConcerts({ 
+    const concerts = await getConcerts({
         hidePast: true, 
         sort: "soonest",
         type: type === "all" ? undefined : (type as ConcertType)
     });
-
-    if (concerts.length === 0) {
-        // Fallback to mock data
-        let mocked = mockConcerts.filter((c) => new Date(c.start_datetime) > new Date());
-        if (type !== "all") {
-            mocked = mocked.filter((c) => c.concert_type === type);
-        }
-        concerts = mocked;
-    }
 
     return (
         <>

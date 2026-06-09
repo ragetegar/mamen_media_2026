@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Search, X } from "lucide-react";
-import { mockArticles } from "@/lib/data";
+import { getArticles } from "@/lib/data";
 import { Article } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,45 +14,42 @@ interface SearchOverlayProps {
 
 export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     const [query, setQuery] = useState("");
-    const [results, setResults] = useState<Article[]>([]);
+    const [articles, setArticles] = useState<Article[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const search = useCallback((q: string) => {
-        if (!q.trim()) {
-            setResults([]);
-            return;
-        }
-        const lower = q.toLowerCase();
-        const found = mockArticles.filter(
+    const results = useMemo(() => {
+        if (!query.trim()) return [];
+
+        const lower = query.toLowerCase();
+        return articles.filter(
             (a) =>
                 a.title.toLowerCase().includes(lower) ||
                 a.excerpt.toLowerCase().includes(lower) ||
                 a.category.toLowerCase().includes(lower) ||
                 a.author.toLowerCase().includes(lower) ||
                 (a.tags && a.tags.some((t) => t.toLowerCase().includes(lower)))
-        );
-        setResults(found.slice(0, 6));
-    }, []);
-
-    useEffect(() => {
-        search(query);
-    }, [query, search]);
+        ).slice(0, 6);
+    }, [articles, query]);
 
     useEffect(() => {
         if (isOpen) {
-            setQuery("");
-            setResults([]);
+            getArticles().then(setArticles).catch(() => setArticles([]));
             setTimeout(() => inputRef.current?.focus(), 50);
         }
     }, [isOpen]);
 
+    const handleClose = useCallback(() => {
+        setQuery("");
+        onClose();
+    }, [onClose]);
+
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
+            if (e.key === "Escape") handleClose();
         };
         document.addEventListener("keydown", handleKey);
         return () => document.removeEventListener("keydown", handleKey);
-    }, [onClose]);
+    }, [handleClose]);
 
     // Prevent body scroll when open
     useEffect(() => {
@@ -66,7 +63,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     return (
         <div
             className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex flex-col items-center pt-[10vh] px-4"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+            onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
         >
             {/* Search Box */}
             <div className="w-full max-w-2xl">
@@ -81,7 +78,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                         className="flex-1 bg-transparent text-mamen-white text-lg placeholder:text-mamen-gray-700 focus:outline-none font-body"
                     />
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="text-mamen-gray-200 hover:text-mamen-white transition-colors cursor-pointer shrink-0"
                     >
                         <X size={20} />
@@ -115,8 +112,8 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                         className={`border-b border-mamen-gray-800 last:border-b-0 ${i === 0 ? "" : ""}`}
                                     >
                                         <Link
-                                            href={`/media/${article.slug}`}
-                                            onClick={onClose}
+                                            href={`/${article.category}/${article.slug}`}
+                                            onClick={handleClose}
                                             className="flex items-center gap-4 px-5 py-4 hover:bg-mamen-gray-800 transition-colors group"
                                         >
                                             <div className="relative w-16 h-12 shrink-0 overflow-hidden">

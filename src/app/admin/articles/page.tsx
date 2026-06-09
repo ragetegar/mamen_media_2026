@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Article, ArticleCategory, ARTICLE_CATEGORIES, ArticleProduct, Concert } from "@/lib/types";
+import { Article, ArticleCategory, ARTICLE_CATEGORIES, ArticleProduct, Concert, FeaturedBrand } from "@/lib/types";
 import { Trash2, Edit, Plus, X, Save, ExternalLink, RefreshCw } from "lucide-react";
 import {
     getAdminArticleData,
@@ -43,6 +43,11 @@ interface ArticleFormData {
 }
 
 const SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
+    news: [
+        { value: "concert", label: "Concert News" },
+        { value: "guide", label: "Guide" },
+        { value: "general", label: "General News" },
+    ],
     music: [
         { value: "review", label: "Music Review" },
         { value: "news", label: "News" },
@@ -86,6 +91,7 @@ export default function AdminArticlesPage() {
     const { user, isLoading: loadingAuth } = useAuth();
     const [articles, setArticles] = useState<Article[]>([]);
     const [products, setProducts] = useState<ArticleProduct[]>([]);
+    const [brands, setBrands] = useState<FeaturedBrand[]>([]);
     const [allConcerts, setAllConcerts] = useState<Concert[]>([]);
     const [authors, setAuthors] = useState<{ id: string; name: string; role: string }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -116,6 +122,7 @@ export default function AdminArticlesPage() {
                     setArticles(data.articles);
                     setAllConcerts(data.concerts);
                     setProducts(data.products);
+                    setBrands(data.brands);
                     setAuthors(data.authors);
                 }
             } catch (err) {
@@ -135,6 +142,7 @@ export default function AdminArticlesPage() {
     const [showProductForm, setShowProductForm] = useState(false);
     const [productForm, setProductForm] = useState({
         merchant: "shopee" as "shopee" | "tokopedia" | "tiktok",
+        brand_name: "",
         title: "",
         image: "",
         price_display: "",
@@ -252,10 +260,11 @@ export default function AdminArticlesPage() {
     };
 
     const handleAddProduct = async () => {
-        if (!editingId || !productForm.title || !productForm.affiliate_url) return;
+        if (!editingId || !productForm.brand_name.trim() || !productForm.title || !productForm.affiliate_url) return;
         try {
             const newProduct = await createArticleProduct({
                 article_id: editingId,
+                brand_name: productForm.brand_name,
                 merchant: productForm.merchant,
                 title: productForm.title,
                 image: productForm.image,
@@ -264,8 +273,23 @@ export default function AdminArticlesPage() {
                 sort_order: products.filter((p) => p.article_id === editingId).length + 1,
             });
             setProducts((prev) => [...prev, newProduct]);
+            setBrands((prev) => {
+                if (prev.some((brand) => brand.id === newProduct.brand_id)) return prev;
+                return [
+                    ...prev,
+                    {
+                        id: newProduct.brand_id || "",
+                        name: productForm.brand_name.trim().replace(/\s+/g, " "),
+                        image: "",
+                        link: "/",
+                        sort_order: 0,
+                        is_active: false,
+                    },
+                ];
+            });
             setProductForm({
                 merchant: "shopee",
+                brand_name: "",
                 title: "",
                 image: "",
                 price_display: "",
@@ -532,40 +556,38 @@ export default function AdminArticlesPage() {
                             </div>
 
                             {/* Related Concerts */}
-                            {form.category === "concerts" && (
-                                <div>
-                                    <label className={labelClasses}>Related Concerts</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                        {allConcerts.map((concert) => {
-                                            const checked = form.linked_concert_ids.includes(concert.id);
-                                            return (
-                                                <button
-                                                    key={concert.id}
-                                                    type="button"
-                                                    onClick={() => toggleConcert(concert.id)}
-                                                    className={`flex items-center gap-2 px-3 py-2.5 text-left border-2 transition-all cursor-pointer ${checked
-                                                        ? "border-mamen-magenta bg-mamen-magenta/10 text-mamen-white"
-                                                        : "border-mamen-gray-700 bg-mamen-gray-800 text-mamen-gray-200 hover:border-mamen-gray-600"
+                            <div>
+                                <label className={labelClasses}>Related Concerts</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                    {allConcerts.map((concert) => {
+                                        const checked = form.linked_concert_ids.includes(concert.id);
+                                        return (
+                                            <button
+                                                key={concert.id}
+                                                type="button"
+                                                onClick={() => toggleConcert(concert.id)}
+                                                className={`flex items-center gap-2 px-3 py-2.5 text-left border-2 transition-all cursor-pointer ${checked
+                                                    ? "border-mamen-magenta bg-mamen-magenta/10 text-mamen-white"
+                                                    : "border-mamen-gray-700 bg-mamen-gray-800 text-mamen-gray-200 hover:border-mamen-gray-600"
+                                                    }`}
+                                            >
+                                                <div
+                                                    className={`w-4 h-4 border-2 shrink-0 flex items-center justify-center ${checked ? "border-mamen-magenta bg-mamen-magenta" : "border-mamen-gray-600"
                                                         }`}
                                                 >
-                                                    <div
-                                                        className={`w-4 h-4 border-2 shrink-0 flex items-center justify-center ${checked ? "border-mamen-magenta bg-mamen-magenta" : "border-mamen-gray-600"
-                                                            }`}
-                                                    >
-                                                        {checked && <span className="text-white text-xs font-bold">✓</span>}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-xs font-bold truncate">{concert.title}</p>
-                                                        <p className="text-xs text-mamen-gray-700">
-                                                            {concert.city} · {concert.concert_type}
-                                                        </p>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                                    {checked && <span className="text-white text-xs font-bold">✓</span>}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-bold truncate">{concert.title}</p>
+                                                    <p className="text-xs text-mamen-gray-700">
+                                                        {concert.city} · {concert.concert_type}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                            )}
+                            </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -614,7 +636,7 @@ export default function AdminArticlesPage() {
                                             <div>
                                                 <p className="text-sm font-medium text-mamen-white">{product.title}</p>
                                                 <p className="text-xs text-mamen-gray-200">
-                                                    {product.merchant} — {product.price_display}
+                                                    {brands.find((brand) => brand.id === product.brand_id)?.name || "Unknown brand"} · {product.merchant} · {product.price_display}
                                                 </p>
                                             </div>
                                             <button
@@ -631,6 +653,27 @@ export default function AdminArticlesPage() {
                                         <div className="p-4 bg-mamen-gray-800 border-2 border-mamen-purple mt-2 space-y-3">
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
+                                                    <label className={labelClasses}>Brand *</label>
+                                                    <input
+                                                        type="text"
+                                                        list="affiliate-brand-options"
+                                                        value={productForm.brand_name}
+                                                        onChange={(e) =>
+                                                            setProductForm({ ...productForm, brand_name: e.target.value })
+                                                        }
+                                                        className={inputClasses}
+                                                        placeholder="Adidas"
+                                                    />
+                                                    <datalist id="affiliate-brand-options">
+                                                        {brands.map((brand) => (
+                                                            <option key={brand.id} value={brand.name} />
+                                                        ))}
+                                                    </datalist>
+                                                    <p className="mt-1 text-xs text-mamen-gray-200">
+                                                        Existing brands match regardless of capitalization.
+                                                    </p>
+                                                </div>
+                                                <div>
                                                     <label className={labelClasses}>Product Title *</label>
                                                     <input
                                                         type="text"
@@ -642,7 +685,7 @@ export default function AdminArticlesPage() {
                                                         placeholder="Product name"
                                                     />
                                                 </div>
-                                                <div>
+                                                <div className="col-span-2">
                                                     <label className={labelClasses}>Merchant *</label>
                                                     <select
                                                         value={productForm.merchant}

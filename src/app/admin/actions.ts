@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerSupabase, createServiceRoleClient } from "@/lib/supabase";
-import { Article, ArticleProduct, Concert } from "@/lib/types";
+import { Article, ArticleProduct, Concert, FeaturedBrand, Merchant } from "@/lib/types";
 
 type AdminRole = "admin" | "contributor";
 
@@ -45,6 +45,55 @@ async function assertCanWriteArticle(articleId: string, role: AdminRole, userId:
     }
 }
 
+function normalizeBrandName(name: string) {
+    return name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+async function resolveBrandId(
+    supabase: ReturnType<typeof createServiceRoleClient>,
+    brandName: string,
+) {
+    const name = brandName.trim().replace(/\s+/g, " ");
+    const normalizedName = normalizeBrandName(name);
+    if (!normalizedName) throw new Error("Brand is required");
+
+    const { data: existing, error: findError } = await supabase
+        .from("featured_brands")
+        .select("id")
+        .eq("normalized_name", normalizedName)
+        .maybeSingle();
+
+    if (findError) throw new Error(`Failed to find brand: ${findError.message}`);
+    if (existing) return existing.id as string;
+
+    const { data: created, error: createError } = await supabase
+        .from("featured_brands")
+        .insert({
+            name,
+            normalized_name: normalizedName,
+            image: "",
+            link: "/",
+            sort_order: 0,
+            is_active: false,
+        })
+        .select("id")
+        .single();
+
+    if (!createError && created) return created.id as string;
+
+    // A concurrent request may have created the same normalized brand.
+    const { data: concurrent, error: concurrentError } = await supabase
+        .from("featured_brands")
+        .select("id")
+        .eq("normalized_name", normalizedName)
+        .single();
+
+    if (concurrentError || !concurrent) {
+        throw new Error(`Failed to create brand: ${createError?.message || concurrentError?.message}`);
+    }
+    return concurrent.id as string;
+}
+
 export async function getAdminArticleData() {
     const { supabase, user, profile } = await getAdminContext();
 
@@ -57,15 +106,17 @@ export async function getAdminArticleData() {
         articlesQuery = articlesQuery.eq("author_id", user.id);
     }
 
-    const [{ data: articles, error: articlesError }, { data: concerts, error: concertsError }, { data: authors, error: authorsError }] = await Promise.all([
+    const [{ data: articles, error: articlesError }, { data: concerts, error: concertsError }, { data: authors, error: authorsError }, { data: brands, error: brandsError }] = await Promise.all([
         articlesQuery,
         supabase.from("concerts").select("*").order("start_datetime", { ascending: true }),
         supabase.from("profiles").select("id, name, role").in("role", ["admin", "contributor"]).order("name"),
+        supabase.from("featured_brands").select("*").order("name"),
     ]);
 
     if (articlesError) throw new Error(`Failed to load articles: ${articlesError.message}`);
     if (concertsError) throw new Error(`Failed to load concerts: ${concertsError.message}`);
     if (authorsError) throw new Error(`Failed to load authors: ${authorsError.message}`);
+    if (brandsError) throw new Error(`Failed to load brands: ${brandsError.message}`);
 
     const articleIds = (articles || []).map((article) => article.id);
     let products: ArticleProduct[] = [];
@@ -83,6 +134,7 @@ export async function getAdminArticleData() {
         articles: (articles || []) as Article[],
         concerts: (concerts || []) as Concert[],
         products,
+        brands: (brands || []) as FeaturedBrand[],
         authors: (authors || []) as { id: string; name: string; role: string }[],
     };
 }
@@ -187,14 +239,25 @@ export async function deleteArticle(id: string) {
     }
 }
 
-export async function createArticleProduct(product: Omit<ArticleProduct, "id">) {
+export async function createArticleProduct(product: {
+    article_id: string;
+    brand_name: string;
+    merchant: Merchant;
+    title: string;
+    image: string;
+    price_display: string;
+    affiliate_url: string;
+    sort_order: number;
+}) {
     const { supabase, user, profile } = await getAdminContext();
     await assertCanWriteArticle(product.article_id, profile.role, user.id);
+    const brandId = await resolveBrandId(supabase, product.brand_name);
 
     const { data, error } = await supabase
         .from("article_products")
         .insert({
             article_id: product.article_id,
+            brand_id: brandId,
             merchant: product.merchant,
             title: product.title,
             image: product.image,
@@ -210,6 +273,83 @@ export async function createArticleProduct(product: Omit<ArticleProduct, "id">) 
         throw new Error("Failed to create product");
     }
     return data as ArticleProduct;
+}
+
+export async function getAdminBrands() {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage brands");
+
+    const { data, error } = await supabase
+        .from("featured_brands")
+        .select("*")
+        .order("sort_order")
+        .order("name");
+
+    if (error) throw new Error(`Failed to load brands: ${error.message}`);
+    return (data || []) as FeaturedBrand[];
+}
+
+export async function createBrand(brand: Omit<FeaturedBrand, "id">) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage brands");
+
+    const name = brand.name.trim().replace(/\s+/g, " ");
+    const { data, error } = await supabase
+        .from("featured_brands")
+        .insert({
+            ...brand,
+            name,
+            normalized_name: normalizeBrandName(name),
+            image: brand.image || "",
+            link: brand.link || "/",
+            sort_order: brand.sort_order || 0,
+            is_active: brand.is_active ?? false,
+        })
+        .select()
+        .single();
+
+    if (error) throw new Error(error.code === "23505" ? "That brand already exists" : `Failed to create brand: ${error.message}`);
+    return data as FeaturedBrand;
+}
+
+export async function updateBrand(id: string, brand: Omit<FeaturedBrand, "id">) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage brands");
+
+    const name = brand.name.trim().replace(/\s+/g, " ");
+    const { data, error } = await supabase
+        .from("featured_brands")
+        .update({
+            ...brand,
+            name,
+            normalized_name: normalizeBrandName(name),
+            image: brand.image || "",
+            link: brand.link || "/",
+            sort_order: brand.sort_order || 0,
+            is_active: brand.is_active ?? false,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+    if (error) throw new Error(error.code === "23505" ? "That brand already exists" : `Failed to update brand: ${error.message}`);
+    return data as FeaturedBrand;
+}
+
+export async function deleteBrand(id: string) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage brands");
+
+    const { count, error: countError } = await supabase
+        .from("article_products")
+        .select("*", { count: "exact", head: true })
+        .eq("brand_id", id);
+
+    if (countError) throw new Error(`Failed to check brand products: ${countError.message}`);
+    if (count) throw new Error("This brand is used by affiliate products and cannot be deleted");
+
+    const { error } = await supabase.from("featured_brands").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete brand: ${error.message}`);
 }
 
 export async function deleteArticleProduct(id: string) {

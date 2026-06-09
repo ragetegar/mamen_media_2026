@@ -4,20 +4,18 @@ import Badge from "@/components/ui/Badge";
 import { Article } from "@/lib/types";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
-    "music-review": "purple",
-    "concert-review": "magenta",
     news: "lime",
-    "hot-drop": "magenta",
-    interview: "purple",
+    music: "purple",
+    lifestyle: "lime",
+    sports: "magenta",
     hobbies: "lime",
 };
 
 const categoryLabel: Record<string, string> = {
-    "music-review": "Music Review",
-    "concert-review": "Concert Review",
     news: "News",
-    "hot-drop": "Hot Drop",
-    interview: "Interview",
+    music: "Music",
+    lifestyle: "Lifestyle",
+    sports: "Sports",
     hobbies: "Hobbies",
 };
 

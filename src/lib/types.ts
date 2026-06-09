@@ -25,15 +25,15 @@ export interface Article {
 }
 
 export type ArticleCategory =
+    | "news"
     | "music"
-    | "concerts"
     | "lifestyle"
     | "sports"
     | "hobbies";
 
 export const ARTICLE_CATEGORIES: { value: ArticleCategory; label: string }[] = [
+    { value: "news", label: "News" },
     { value: "music", label: "Music" },
-    { value: "concerts", label: "Concerts" },
     { value: "lifestyle", label: "Lifestyle" },
     { value: "sports", label: "Sports" },
     { value: "hobbies", label: "Hobbies" },
@@ -114,6 +114,7 @@ export const CONCERT_SORT_OPTIONS: { value: ConcertSort; label: string }[] = [
 export interface ArticleProduct {
     id: string;
     article_id: string;
+    brand_id?: string;
     merchant: Merchant;
     title: string;
     image: string;
@@ -149,6 +150,8 @@ export interface FeaturedBrand {
     image: string;
     link: string;
     tag?: string;
+    sort_order?: number;
+    is_active?: boolean;
 }
 
 export interface ArticleConcert {

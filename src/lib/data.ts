@@ -77,7 +77,8 @@ export const mockArticles: Article[] = [
         id: "2",
         slug: "head-in-the-clouds-jakarta-2026-recap",
         title: "Head In The Clouds Jakarta 2026: The Night That Shook GBK",
-        category: "concerts",
+        category: "news",
+        subcategory: "concert",
         cover_image: "https://picsum.photos/seed/hitc/800/500",
         excerpt:
             "88rising brought the heat to Jakarta with an unforgettable night featuring NIKI, Rich Brian, and surprise guest Joji.",
@@ -245,8 +246,8 @@ export const mockArticles: Article[] = [
         id: "9",
         slug: "blackpink-jakarta-concert-2026",
         title: "BLACKPINK Announce Jakarta Concert — BORN PINK World Tour Extended",
-        category: "concerts",
-        subcategory: "kpop",
+        category: "news",
+        subcategory: "concert",
         cover_image: "https://picsum.photos/seed/blackpink/800/500",
         excerpt:
             "Blinks unite! BLACKPINK is coming to Jakarta's GBK Stadium as part of their extended BORN PINK tour.",
@@ -738,8 +739,19 @@ export async function getRelatedConcerts(limit = 3): Promise<Concert[]> {
     return data as Concert[];
 }
 
-export function getFeaturedBrands(): FeaturedBrand[] {
-    return mockFeaturedBrands;
+export async function getFeaturedBrands(): Promise<FeaturedBrand[]> {
+    const { data, error } = await supabase
+        .from("featured_brands")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+
+    if (error) {
+        console.error("Error fetching featured brands:", error);
+        return [];
+    }
+    return data as FeaturedBrand[];
 }
 
 export async function getArticleLinkedConcerts(article: Article): Promise<Concert[]> {

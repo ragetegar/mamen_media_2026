@@ -1,6 +1,6 @@
 import ArticleTile from "@/components/ArticleTile";
 import SectionHeader from "@/components/SectionHeader";
-import { getArticles, mockArticles } from "@/lib/data";
+import { getArticles } from "@/lib/data";
 import { ArticleCategory } from "@/lib/types";
 import Link from "next/link";
 
@@ -21,16 +21,8 @@ export default async function CategoryListingPage({
     subcategories,
     activeSub,
 }: CategoryListingPageProps) {
-    // Fetch from Supabase, fallback to mock data
-    let articles = await getArticles(category, activeSub || undefined);
-
-    if (articles.length === 0) {
-        // Fallback to mock data (filter by category)
-        articles = mockArticles.filter((a) => a.category === category);
-        if (activeSub) {
-            articles = articles.filter((a) => a.subcategory === activeSub);
-        }
-    }
+    const articles = await getArticles(category, activeSub || undefined);
+    const activeSubLabel = subcategories.find((sub) => sub.value === activeSub)?.label;
 
     return (
         <>
@@ -87,7 +79,10 @@ export default async function CategoryListingPage({
                     ) : (
                         <div className="text-center py-20 border-4 border-dashed border-mamen-gray-800">
                             <p className="font-headline text-2xl font-bold text-mamen-gray-700">
-                                No articles dropping in this category yet.
+                                No published {activeSubLabel ? `${highlight} ${activeSubLabel}` : highlight} articles yet.
+                            </p>
+                            <p className="mt-3 text-sm text-mamen-gray-200">
+                                New articles will appear here after they are published from the admin page.
                             </p>
                         </div>
                     )}

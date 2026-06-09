@@ -13,11 +13,11 @@ export default async function HomePage() {
   const latestArticles = articles.slice(4, 10); // For Latest Drops
   const allConcerts = await getConcerts();
   const concerts = allConcerts.slice(0, 4);
-  const brands = getFeaturedBrands();
+  const brands = await getFeaturedBrands();
 
   return (
     <>
-      {/* 1. News Hero Banner */}
+      {/* 1. Editorial Hero Banner */}
       <HeroBanner articles={topArticles} />
 
       {/* 2. Top Brands (replaces Vibe Check) */}
@@ -29,8 +29,8 @@ export default async function HomePage() {
           <SectionHeader
             title="LATEST"
             highlight="DROPS"
-            seeAllHref="/music"
-            seeAllLabel="See All News →"
+            seeAllHref="/concerts"
+            seeAllLabel="Explore Concerts →"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {latestArticles.map((article) => (

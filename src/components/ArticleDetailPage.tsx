@@ -12,11 +12,11 @@ import {
 } from "@/lib/data";
 import { Copy, Share2 } from "lucide-react";
 import ArticlePageClient from "@/app/media/[slug]/ArticlePageClient";
-import { Article, ArticleCategory } from "@/lib/types";
+import { ArticleCategory } from "@/lib/types";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
+    news: "lime",
     music: "purple",
-    concerts: "magenta",
     lifestyle: "lime",
     sports: "magenta",
     hobbies: "lime",

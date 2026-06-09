@@ -1,23 +1,17 @@
-import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ArticleTile from "@/components/ArticleTile";
 import ConcertAttendButton from "./ConcertAttendButton";
 import ConcertAttendees from "@/components/ConcertAttendees";
-import { getConcertBySlug, getRelatedArticles, mockConcerts, getBarenganCountForConcert } from "@/lib/data";
+import { getArticleBySlug, getConcertBySlug, getRelatedArticles, getBarenganCountForConcert } from "@/lib/data";
 import { Calendar, MapPin, Users, Ticket, Clock } from "lucide-react";
 
 interface PageProps {
     params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-    return mockConcerts.map((concert) => ({
-        slug: concert.slug,
-    }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -40,7 +34,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ConcertDetailPage({ params }: PageProps) {
     const { slug } = await params;
     const concert = await getConcertBySlug(slug);
-    if (!concert) notFound();
+    if (!concert) {
+        const article = await getArticleBySlug(slug);
+        if (article?.category === "news") permanentRedirect(`/news/${slug}`);
+        notFound();
+    }
 
     const eventDate = new Date(concert.start_datetime);
     const isPast = eventDate < new Date();
