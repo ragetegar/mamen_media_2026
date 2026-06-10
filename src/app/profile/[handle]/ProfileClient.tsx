@@ -49,7 +49,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
     const [startingDm, setStartingDm] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState("");
-    const [attendCount, setAttendCount] = useState(0);
+    const [historyCount, setHistoryCount] = useState(0);
     const [favoriteConcerts, setFavoriteConcerts] = useState<Concert[]>([]);
 
     // Edit form state
@@ -61,7 +61,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
     const [editTikTok, setEditTikTok] = useState("");
     const [editX, setEditX] = useState("");
 
-    const [activeTab, setActiveTab] = useState<"concerts" | "comments">("concerts");
+    const [activeTab, setActiveTab] = useState<"attending" | "history" | "comments">("attending");
 
     // Follow system state
     const [followerCount, setFollowerCount] = useState(0);
@@ -111,11 +111,11 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                 setEditTikTok(profile.social_tiktok || "");
                 setEditX(profile.social_x || "");
 
-                // Fetch attend count + favorite concerts + follow counts in parallel
+                // Fetch attendance rows + favorite concerts + follow counts in parallel
                 const [attendResult, favResult, followerResult, followingResult] = await Promise.all([
                     supabase
                         .from("concert_attendees")
-                        .select("*", { count: "exact", head: true })
+                        .select("concert_id")
                         .eq("user_id", profile.id),
                     profile.favorite_concert_ids && profile.favorite_concert_ids.length > 0
                         ? supabase.from("concerts").select("*").in("id", profile.favorite_concert_ids)
@@ -131,7 +131,23 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                 ]);
 
                 if (mounted) {
-                    setAttendCount(attendResult.count || 0);
+                    const attendedConcertIds = (attendResult.data || []).map((row) => row.concert_id);
+                    let completedCount = 0;
+
+                    if (attendedConcertIds.length > 0) {
+                        const { data: attendedConcerts } = await supabase
+                            .from("concerts")
+                            .select("id, start_datetime, end_datetime")
+                            .in("id", attendedConcertIds);
+
+                        completedCount = (attendedConcerts || []).filter((concert) => {
+                            const eventEnd = new Date(concert.end_datetime || concert.start_datetime).getTime();
+                            return eventEnd < Date.now();
+                        }).length;
+                    }
+
+                    if (!mounted) return;
+                    setHistoryCount(completedCount);
                     if (favResult.data) setFavoriteConcerts(favResult.data as Concert[]);
                     setFollowerCount(followerResult.count || 0);
                     setFollowingCount(followingResult.count || 0);
@@ -286,7 +302,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                                 {/* Attend count badge */}
                                 <div className="flex items-center gap-1.5 text-xs text-mamen-magenta font-bold">
                                     <CalendarDays size={14} />
-                                    <span>{attendCount} concert{attendCount !== 1 ? "s" : ""}</span>
+                                    <span>{historyCount} attended</span>
                                 </div>
 
                                 {/* Social links */}
@@ -404,27 +420,39 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
 
             {/* Tabs */}
             <div className="border-b-2 border-mamen-gray-800">
-                <nav className="flex gap-8">
+                <nav className="flex gap-8 overflow-x-auto">
                     <button
-                        onClick={() => setActiveTab("concerts")}
-                        className={`pb-4 text-sm font-headline font-bold tracking-wider uppercase flex items-center gap-2 transition-colors relative ${activeTab === "concerts"
+                        onClick={() => setActiveTab("attending")}
+                        className={`shrink-0 pb-4 text-sm font-headline font-bold tracking-wider uppercase flex items-center gap-2 transition-colors relative ${activeTab === "attending"
                             ? "text-mamen-magenta"
                             : "text-mamen-gray-400 hover:text-mamen-gray-200"
                             }`}
                     >
                         <CalendarDays size={16} /> Attending Concerts
-                        {activeTab === "concerts" && (
+                        {activeTab === "attending" && (
                             <div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-mamen-magenta" />
                         )}
                     </button>
                     <button
+                        onClick={() => setActiveTab("history")}
+                        className={`shrink-0 pb-4 text-sm font-headline font-bold tracking-wider uppercase flex items-center gap-2 transition-colors relative ${activeTab === "history"
+                            ? "text-mamen-purple"
+                            : "text-mamen-gray-400 hover:text-mamen-gray-200"
+                            }`}
+                    >
+                        <History size={16} /> Concert History
+                        {activeTab === "history" && (
+                            <div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-mamen-purple" />
+                        )}
+                    </button>
+                    <button
                         onClick={() => setActiveTab("comments")}
-                        className={`pb-4 text-sm font-headline font-bold tracking-wider uppercase flex items-center gap-2 transition-colors relative ${activeTab === "comments"
+                        className={`shrink-0 pb-4 text-sm font-headline font-bold tracking-wider uppercase flex items-center gap-2 transition-colors relative ${activeTab === "comments"
                             ? "text-mamen-lime"
                             : "text-mamen-gray-400 hover:text-mamen-gray-200"
                             }`}
                     >
-                        <History size={16} /> Comments History
+                        <MessageCircle size={16} /> Comments History
                         {activeTab === "comments" && (
                             <div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-mamen-lime" />
                         )}
@@ -437,7 +465,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                 {activeTab === "comments" ? (
                     <ProfileComments userId={profileUser?.id || ""} />
                 ) : (
-                    <ProfileConcerts userId={profileUser?.id || ""} />
+                    <ProfileConcerts userId={profileUser?.id || ""} mode={activeTab} />
                 )}
             </div>
 

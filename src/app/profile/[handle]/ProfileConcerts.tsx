@@ -3,49 +3,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Concert } from "@/lib/types";
-import { Calendar, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, MapPin, ChevronLeft, ChevronRight, History } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-// ── Supabase-backed attendance helpers ──
-
-export async function loadUserConcertIds(userId: string): Promise<string[]> {
-    const { data, error } = await supabase
-        .from("concert_attendees")
-        .select("concert_id")
-        .eq("user_id", userId);
-
-    if (error) {
-        console.error("Error loading concert attendance:", error);
-        return [];
-    }
-    return (data || []).map((row) => row.concert_id);
-}
-
-export async function saveUserConcert(userId: string, concertId: string) {
-    const { error } = await supabase
-        .from("concert_attendees")
-        .insert({ user_id: userId, concert_id: concertId });
-
-    if (error && error.code !== "23505") {
-        console.error("Error saving concert attendance:", error);
-    }
-}
-
-export async function removeUserConcert(userId: string, concertId: string) {
-    const { error } = await supabase
-        .from("concert_attendees")
-        .delete()
-        .eq("user_id", userId)
-        .eq("concert_id", concertId);
-
-    if (error) {
-        console.error("Error removing concert attendance:", error);
-    }
-}
-
-// ── Types for concert history ──
-interface ConcertHistoryItem {
+interface ProfileConcertItem {
     concert: Concert;
     source: string;
     created_at: string;
@@ -56,10 +18,19 @@ const PER_PAGE = 8;
 
 // ── Component ──
 
-export default function ProfileConcerts({ userId }: { userId: string }) {
-    const [history, setHistory] = useState<ConcertHistoryItem[]>([]);
+interface ProfileConcertsProps {
+    userId: string;
+    mode: "attending" | "history";
+}
+
+export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) {
+    const [concertItems, setConcertItems] = useState<ProfileConcertItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+    }, [mode]);
 
     useEffect(() => {
         if (!userId) return;
@@ -75,33 +46,33 @@ export default function ProfileConcerts({ userId }: { userId: string }) {
                     .order("created_at", { ascending: false });
 
                 if (attendError || !attendRows || attendRows.length === 0) {
-                    setHistory([]);
+                    setConcertItems([]);
                     return;
                 }
 
-                const concertIds = attendRows.map((r: any) => r.concert_id);
+                const concertIds = attendRows.map((row) => row.concert_id);
                 const { data: concerts, error: concertError } = await supabase
                     .from("concerts")
                     .select("*")
                     .in("id", concertIds);
 
                 if (concertError || !concerts) {
-                    setHistory([]);
+                    setConcertItems([]);
                     return;
                 }
 
                 const concertMap: Record<string, Concert> = {};
-                concerts.forEach((c: any) => { concertMap[c.id] = c as Concert; });
+                concerts.forEach((concert) => { concertMap[concert.id] = concert as Concert; });
 
-                const items: ConcertHistoryItem[] = attendRows
-                    .filter((r: any) => concertMap[r.concert_id])
-                    .map((r: any) => ({
-                        concert: concertMap[r.concert_id],
-                        source: r.source || "manual",
-                        created_at: r.created_at,
+                const items: ProfileConcertItem[] = attendRows
+                    .filter((row) => concertMap[row.concert_id])
+                    .map((row) => ({
+                        concert: concertMap[row.concert_id],
+                        source: row.source || "manual",
+                        created_at: row.created_at,
                     }));
 
-                setHistory(items);
+                setConcertItems(items);
             } catch (err) {
                 console.error("Error fetching concert data:", err);
             } finally {
@@ -123,33 +94,42 @@ export default function ProfileConcerts({ userId }: { userId: string }) {
         );
     }
 
-    if (history.length === 0) {
+    const now = Date.now();
+    const visibleModeItems = concertItems
+        .filter((item) => {
+            const eventEnd = new Date(item.concert.end_datetime || item.concert.start_datetime).getTime();
+            return mode === "attending" ? eventEnd >= now : eventEnd < now;
+        })
+        .sort((a, b) => {
+            const aEnd = new Date(a.concert.end_datetime || a.concert.start_datetime).getTime();
+            const bEnd = new Date(b.concert.end_datetime || b.concert.start_datetime).getTime();
+            return mode === "attending" ? aEnd - bEnd : bEnd - aEnd;
+        });
+
+    if (visibleModeItems.length === 0) {
+        const EmptyIcon = mode === "attending" ? Calendar : History;
         return (
             <div className="py-12 text-center border-2 border-dashed border-mamen-gray-800">
-                <Calendar className="mx-auto text-mamen-gray-700 mb-3" size={32} />
+                <EmptyIcon className="mx-auto text-mamen-gray-700 mb-3" size={32} />
                 <p className="text-mamen-gray-700 font-headline text-base font-bold">
-                    No attending concerts yet.
+                    {mode === "attending"
+                        ? "No upcoming attending concerts yet."
+                        : "No concert history yet."}
                 </p>
             </div>
         );
     }
 
-    // Split into upcoming / past
-    const now = new Date();
-    const upcoming = history.filter((h) => new Date(h.concert.start_datetime) >= now);
-    const past = history.filter((h) => new Date(h.concert.start_datetime) < now);
-    const allSorted = [...upcoming, ...past];
-
     // Pagination
-    const totalPages = Math.ceil(allSorted.length / PER_PAGE);
+    const totalPages = Math.ceil(visibleModeItems.length / PER_PAGE);
     const start = (page - 1) * PER_PAGE;
-    const visible = allSorted.slice(start, start + PER_PAGE);
+    const visible = visibleModeItems.slice(start, start + PER_PAGE);
 
     return (
         <div className="space-y-4">
             {visible.map((item) => {
                 const eventDate = new Date(item.concert.start_datetime);
-                const isPast = eventDate < now;
+                const isHistory = mode === "history";
 
                 return (
                     <Link
@@ -166,9 +146,9 @@ export default function ProfileConcerts({ userId }: { userId: string }) {
                                 className="object-cover"
                                 sizes="80px"
                             />
-                            {isPast && (
+                            {isHistory && (
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                    <span className="text-[9px] font-headline font-bold text-white uppercase tracking-wider opacity-80">Past</span>
+                                    <span className="text-[9px] font-headline font-bold text-white uppercase tracking-wider opacity-80">Attended</span>
                                 </div>
                             )}
                         </div>

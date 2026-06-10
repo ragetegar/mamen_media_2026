@@ -14,6 +14,8 @@ import { Copy, Share2 } from "lucide-react";
 import ArticlePageClient from "@/app/media/[slug]/ArticlePageClient";
 import { ArticleCategory } from "@/lib/types";
 import { getArticleCategoryLabel, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
+import Link from "next/link";
+import { getTagHref } from "@/lib/tags";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
     music: "purple",
@@ -89,12 +91,13 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
                         {article.tags && article.tags.length > 0 && (
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {article.tags.map((tag) => (
-                                    <span
+                                    <Link
                                         key={tag}
-                                        className="text-xs px-2.5 py-1 bg-mamen-gray-900/80 text-mamen-gray-200 font-headline tracking-wide uppercase border border-mamen-gray-700 backdrop-blur-sm"
+                                        href={getTagHref(tag)}
+                                        className="text-xs px-2.5 py-1 bg-mamen-gray-900/80 text-mamen-gray-200 font-headline tracking-wide uppercase border border-mamen-gray-700 backdrop-blur-sm transition-colors hover:border-mamen-purple hover:text-mamen-purple"
                                     >
                                         #{tag}
-                                    </span>
+                                    </Link>
                                 ))}
                             </div>
                         )}

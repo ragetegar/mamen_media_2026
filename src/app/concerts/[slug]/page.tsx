@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ArticleTile from "@/components/ArticleTile";
-import ConcertAttendButton from "./ConcertAttendButton";
+import ConcertInterestButton from "./ConcertInterestButton";
 import ConcertAttendees from "@/components/ConcertAttendees";
 import { getConcertBySlug, getRelatedArticles, getBarenganCountForConcert } from "@/lib/data";
 import { Calendar, MapPin, Users, Ticket, Clock } from "lucide-react";
@@ -37,7 +37,8 @@ export default async function ConcertDetailPage({ params }: PageProps) {
     if (!concert) notFound();
 
     const eventDate = new Date(concert.start_datetime);
-    const isPast = eventDate < new Date();
+    const eventEndDate = new Date(concert.end_datetime || concert.start_datetime);
+    const isPast = eventEndDate < new Date();
     const relatedArticles = await getRelatedArticles("", 3, concert.id);
     const barenganCount = await getBarenganCountForConcert(concert.id);
 
@@ -158,7 +159,7 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                                         </Button>
                                     </a>
                                 )}
-                                <ConcertAttendButton concertId={concert.id} />
+                                <ConcertInterestButton concertId={concert.id} />
                             </div>
 
                             {/* Find Barengan */}
@@ -190,7 +191,7 @@ export default async function ConcertDetailPage({ params }: PageProps) {
             {/* Concert Attendees */}
             <section className="bg-mamen-black border-t-2 border-mamen-gray-800">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <ConcertAttendees concertId={concert.id} />
+                    <ConcertAttendees concertId={concert.id} isPast={isPast} />
                 </div>
             </section>
 

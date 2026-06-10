@@ -21,6 +21,7 @@ import {
     DirectMessage,
     ConcertAttendee,
 } from "./types";
+import { normalizeArticleTag } from "./tags";
 import { createServerSupabase, getBrowserSupabase, supabase } from "./supabase";
 import { getBarenganCapacity } from "./barengan";
 
@@ -592,6 +593,24 @@ export async function getArticles(category?: ArticleCategory, subcategory?: stri
     const { data, error } = await query;
     if (error) {
         console.error("Error fetching articles:", error);
+        return [];
+    }
+    return data as Article[];
+}
+
+export async function getArticlesByTag(tag: string): Promise<Article[]> {
+    const normalizedTag = normalizeArticleTag(tag);
+    if (!normalizedTag) return [];
+
+    const { data, error } = await supabase
+        .from("articles")
+        .select("*")
+        .eq("status", "published")
+        .contains("tags", [normalizedTag])
+        .order("published_at", { ascending: false });
+
+    if (error) {
+        console.error("Error fetching articles by tag:", error);
         return [];
     }
     return data as Article[];

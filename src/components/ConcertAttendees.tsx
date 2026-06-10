@@ -11,9 +11,10 @@ import { Users, Check, Plus } from "lucide-react";
 
 interface ConcertAttendeesProps {
     concertId: string;
+    isPast?: boolean;
 }
 
-function ConcertAttendeesInner({ concertId }: ConcertAttendeesProps) {
+function ConcertAttendeesInner({ concertId, isPast = false }: ConcertAttendeesProps) {
     const { user } = useAuth();
     const [attendees, setAttendees] = useState<ProfileSnippet[]>([]);
     const [total, setTotal] = useState(0);
@@ -22,13 +23,12 @@ function ConcertAttendeesInner({ concertId }: ConcertAttendeesProps) {
     const [toggling, setToggling] = useState(false);
     const [loginOpen, setLoginOpen] = useState(false);
 
-    const supabase = getBrowserSupabase();
-
     useEffect(() => {
         let mounted = true;
 
         async function fetchAttendees() {
             setLoading(true);
+            const supabase = getBrowserSupabase();
             try {
                 // Get total count
                 const { count } = await supabase
@@ -48,7 +48,7 @@ function ConcertAttendeesInner({ concertId }: ConcertAttendeesProps) {
                 setTotal(count || 0);
 
                 if (rows && rows.length > 0) {
-                    const userIds = rows.map((r: any) => r.user_id);
+                    const userIds = rows.map((row) => row.user_id);
                     const { data: profiles } = await supabase
                         .from("profiles")
                         .select("id, name, handle, avatar")
@@ -90,6 +90,7 @@ function ConcertAttendeesInner({ concertId }: ConcertAttendeesProps) {
         }
 
         setToggling(true);
+        const supabase = getBrowserSupabase();
         try {
             if (isAttending) {
                 await supabase
@@ -152,27 +153,29 @@ function ConcertAttendeesInner({ concertId }: ConcertAttendeesProps) {
                     </h3>
                 </div>
 
-                <button
-                    onClick={handleToggleAttend}
-                    disabled={toggling}
-                    className={`flex items-center gap-2 px-4 py-2 font-headline text-xs font-bold uppercase tracking-wider border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isAttending
-                            ? "bg-mamen-lime text-mamen-black border-mamen-black shadow-hard-sm"
-                            : "bg-mamen-purple text-white border-mamen-black shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px]"
-                    }`}
-                >
-                    {isAttending ? (
-                        <>
-                            <Check size={14} />
-                            I&apos;m Going
-                        </>
-                    ) : (
-                        <>
-                            <Plus size={14} />
-                            I&apos;m Going
-                        </>
-                    )}
-                </button>
+                {!isPast && (
+                    <button
+                        onClick={handleToggleAttend}
+                        disabled={toggling}
+                        className={`flex items-center gap-2 px-4 py-2 font-headline text-xs font-bold uppercase tracking-wider border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isAttending
+                                ? "bg-mamen-lime text-mamen-black border-mamen-black shadow-hard-sm"
+                                : "bg-mamen-purple text-white border-mamen-black shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px]"
+                        }`}
+                    >
+                        {isAttending ? (
+                            <>
+                                <Check size={14} />
+                                Going
+                            </>
+                        ) : (
+                            <>
+                                <Plus size={14} />
+                                I&apos;m Going
+                            </>
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Avatar row */}
@@ -216,10 +219,10 @@ function ConcertAttendeesInner({ concertId }: ConcertAttendeesProps) {
     );
 }
 
-export default function ConcertAttendees({ concertId }: ConcertAttendeesProps) {
+export default function ConcertAttendees({ concertId, isPast }: ConcertAttendeesProps) {
     return (
         <AuthWall blurContent>
-            <ConcertAttendeesInner concertId={concertId} />
+            <ConcertAttendeesInner concertId={concertId} isPast={isPast} />
         </AuthWall>
     );
 }

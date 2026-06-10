@@ -15,6 +15,8 @@ import {
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
 import MediaSelector from "@/components/MediaSelector";
+import RelatedConcertMultiSelect from "@/components/RelatedConcertMultiSelect";
+import { normalizeArticleTag } from "@/lib/tags";
 
 // Dynamically import RichTextEditor to avoid SSR issues with TipTap
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -163,7 +165,7 @@ export default function AdminArticlesPage() {
 
         const parsedTags = form.tags
             .split(",")
-            .map((t) => t.trim().toLowerCase())
+            .map(normalizeArticleTag)
             .filter(Boolean);
 
         setIsSaving(true);
@@ -531,35 +533,11 @@ export default function AdminArticlesPage() {
                             {/* Related Concerts */}
                             <div>
                                 <label className={labelClasses}>Related Concerts</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                    {allConcerts.map((concert) => {
-                                        const checked = form.linked_concert_ids.includes(concert.id);
-                                        return (
-                                            <button
-                                                key={concert.id}
-                                                type="button"
-                                                onClick={() => toggleConcert(concert.id)}
-                                                className={`flex items-center gap-2 px-3 py-2.5 text-left border-2 transition-all cursor-pointer ${checked
-                                                    ? "border-mamen-magenta bg-mamen-magenta/10 text-mamen-white"
-                                                    : "border-mamen-gray-700 bg-mamen-gray-800 text-mamen-gray-200 hover:border-mamen-gray-600"
-                                                    }`}
-                                            >
-                                                <div
-                                                    className={`w-4 h-4 border-2 shrink-0 flex items-center justify-center ${checked ? "border-mamen-magenta bg-mamen-magenta" : "border-mamen-gray-600"
-                                                        }`}
-                                                >
-                                                    {checked && <span className="text-white text-xs font-bold">✓</span>}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-xs font-bold truncate">{concert.title}</p>
-                                                    <p className="text-xs text-mamen-gray-700">
-                                                        {concert.city} · {concert.concert_type}
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <RelatedConcertMultiSelect
+                                    concerts={allConcerts}
+                                    selectedIds={form.linked_concert_ids}
+                                    onToggle={toggleConcert}
+                                />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
