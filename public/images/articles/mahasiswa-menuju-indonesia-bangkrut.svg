@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#090909"/>
+      <stop offset="1" stop-color="#28133f"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff2ca8"/>
+      <stop offset="1" stop-color="#7b3eff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="390" fill="url(#sky)" opacity=".8"/>
+  <circle cx="1240" cy="205" r="115" fill="#c7ff00"/>
+  <path d="M0 610L220 470l190 115 195-160 195 145 205-190 210 175 185-120 200 145v320H0z" fill="#101010"/>
+  <g fill="#f4f4f4">
+    <circle cx="250" cy="510" r="50"/><path d="M170 760l26-180h108l30 180z"/>
+    <circle cx="570" cy="520" r="47"/><path d="M495 760l25-170h105l30 170z"/>
+    <circle cx="930" cy="500" r="52"/><path d="M850 760l25-180h115l32 180z"/>
+    <circle cx="1300" cy="525" r="46"/><path d="M1235 760l20-165h100l25 165z"/>
+  </g>
+  <path d="M283 555l150-120 25 35-145 135z" fill="#c7ff00"/>
+  <path d="M442 412l105-45 25 72-110 31z" fill="#f4f4f4"/>
+  <rect x="105" y="95" width="340" height="58" fill="#c7ff00"/>
+  <text x="135" y="135" fill="#080808" font-family="Arial, sans-serif" font-size="27" font-weight="900" letter-spacing="5">PUBLIC VOICE</text>
+  <text x="105" y="245" fill="#ffffff" font-family="Arial, sans-serif" font-size="70" font-weight="900">MENUJU INDONESIA</text>
+  <text x="105" y="335" fill="#c7ff00" font-family="Arial, sans-serif" font-size="98" font-weight="900">BANGKRUT?</text>
+  <rect x="105" y="790" width="1390" height="8" fill="#ff2ca8"/>
+  <text x="105" y="850" fill="#ffffff" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="3">AKSI MAHASISWA • JAKARTA • 12 JUNI 2026</text>
+</svg>

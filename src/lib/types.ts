@@ -25,12 +25,14 @@ export interface Article {
 }
 
 export type ArticleCategory =
+    | "public-voice"
     | "music"
     | "lifestyle"
     | "sports"
     | "hobbies";
 
 export type ArticleSubcategory =
+    | "opinion"
     | "review"
     | "news"
     | "merch"
@@ -45,6 +47,7 @@ export type ArticleSubcategory =
     | "jkt48";
 
 export const ARTICLE_CATEGORIES: { value: ArticleCategory; label: string }[] = [
+    { value: "public-voice", label: "Public Voice" },
     { value: "music", label: "Music" },
     { value: "lifestyle", label: "Lifestyle" },
     { value: "sports", label: "Sports" },
@@ -54,6 +57,11 @@ export const ARTICLE_CATEGORIES: { value: ArticleCategory; label: string }[] = [
 // ── Navigation Categories ──
 
 export const NAV_CATEGORIES = [
+    {
+        label: "Public Voice",
+        href: "/public-voice",
+        subcategories: [],
+    },
     {
         label: "Concerts",
         href: "/concerts",

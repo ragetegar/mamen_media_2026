@@ -5,12 +5,15 @@ import ConcertTile from "@/components/ConcertTile";
 import ArticleTile from "@/components/ArticleTile";
 import NewsletterBlock from "@/components/NewsletterBlock";
 import SpotifyPodcast from "@/components/SpotifyPodcast";
+import PublicVoiceSection from "@/components/PublicVoiceSection";
 import { getArticles, getConcerts, getFeaturedBrands } from "@/lib/data";
 
 export default async function HomePage() {
   const articles = await getArticles();
-  const topArticles = articles.slice(0, 4); // For the HeroBanner
-  const latestArticles = articles.slice(4, 10); // For Latest Drops
+  const publicVoiceArticles = articles.filter((article) => article.category === "public-voice");
+  const editorialArticles = articles.filter((article) => article.category !== "public-voice");
+  const topArticles = editorialArticles.slice(0, 4); // For the HeroBanner
+  const latestArticles = editorialArticles.slice(4, 10); // For Latest Drops
   const allConcerts = await getConcerts();
   const concerts = allConcerts.slice(0, 4);
   const brands = await getFeaturedBrands();
@@ -23,7 +26,10 @@ export default async function HomePage() {
       {/* 2. Top Brands (replaces Vibe Check) */}
       <TopBrands brands={brands} />
 
-      {/* 3. Latest Drops — Pop Culture Articles Grid */}
+      {/* 3. Public Voice — intentionally separate from the headline */}
+      <PublicVoiceSection articles={publicVoiceArticles} />
+
+      {/* 4. Latest Drops — Pop Culture Articles Grid */}
       <section className="bg-mamen-black py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
@@ -40,7 +46,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. Fresh Heat — Upcoming Concerts */}
+      {/* 5. Fresh Heat — Upcoming Concerts */}
       <section className="bg-mamen-gray-900 py-16 md:py-20 border-t-4 border-mamen-magenta">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
@@ -57,10 +63,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 5. Podcast — Spotify Embed */}
+      {/* 6. Podcast — Spotify Embed */}
       <SpotifyPodcast showId="3mZaixB9zIUiQwbe2Msqit" />
 
-      {/* 6. Newsletter — JOIN THE CROWD */}
+      {/* 7. Newsletter — JOIN THE CROWD */}
       <NewsletterBlock />
     </>
   );

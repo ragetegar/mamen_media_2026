@@ -59,18 +59,27 @@ export default function Navbar() {
                         <div className="hidden lg:flex items-center gap-6" ref={dropdownRef}>
                             {NAV_CATEGORIES.map((cat) => (
                                 <div key={cat.label} className="relative">
-                                    <button
-                                        onClick={() =>
-                                            setOpenDropdown(openDropdown === cat.label ? null : cat.label)
-                                        }
-                                        className="flex items-center gap-1 font-headline text-sm font-bold tracking-widest text-mamen-gray-200 hover:text-mamen-lime transition-colors duration-200 cursor-pointer"
-                                    >
-                                        {cat.label.toUpperCase()}
-                                        <ChevronDown
-                                            size={14}
-                                            className={`transition-transform duration-200 ${openDropdown === cat.label ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
+                                    {cat.subcategories.length > 0 ? (
+                                        <button
+                                            onClick={() =>
+                                                setOpenDropdown(openDropdown === cat.label ? null : cat.label)
+                                            }
+                                            className="flex items-center gap-1 font-headline text-sm font-bold tracking-widest text-mamen-gray-200 hover:text-mamen-lime transition-colors duration-200 cursor-pointer"
+                                        >
+                                            {cat.label.toUpperCase()}
+                                            <ChevronDown
+                                                size={14}
+                                                className={`transition-transform duration-200 ${openDropdown === cat.label ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            href={cat.href}
+                                            className="font-headline text-sm font-bold tracking-widest text-mamen-gray-200 hover:text-mamen-lime transition-colors duration-200"
+                                        >
+                                            {cat.label.toUpperCase()}
+                                        </Link>
+                                    )}
 
                                     {/* Dropdown */}
                                     {openDropdown === cat.label && (
@@ -314,18 +323,26 @@ export default function Navbar() {
 
                             {NAV_CATEGORIES.map((cat) => (
                                 <div key={cat.label} className="mb-4">
-                                    <button
-                                        onClick={() => setMobileOpenDropdown(mobileOpenDropdown === cat.label ? null : cat.label)}
-                                        className="w-full flex items-center justify-between font-headline text-lg font-bold tracking-widest text-mamen-white hover:text-mamen-lime transition-colors cursor-pointer"
-                                    >
-                                        <span>{cat.label.toUpperCase()}</span>
-                                        {cat.subcategories.length > 0 && (
+                                    {cat.subcategories.length > 0 ? (
+                                        <button
+                                            onClick={() => setMobileOpenDropdown(mobileOpenDropdown === cat.label ? null : cat.label)}
+                                            className="w-full flex items-center justify-between font-headline text-lg font-bold tracking-widest text-mamen-white hover:text-mamen-lime transition-colors cursor-pointer"
+                                        >
+                                            <span>{cat.label.toUpperCase()}</span>
                                             <ChevronDown
                                                 size={18}
                                                 className={`transition-transform duration-200 ${mobileOpenDropdown === cat.label ? "rotate-180 text-mamen-lime" : ""}`}
                                             />
-                                        )}
-                                    </button>
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            href={cat.href}
+                                            onClick={() => setMobileOpen(false)}
+                                            className="block font-headline text-lg font-bold tracking-widest text-mamen-white hover:text-mamen-lime transition-colors"
+                                        >
+                                            {cat.label.toUpperCase()}
+                                        </Link>
+                                    )}
 
                                     {/* Submenu Dropdown */}
                                     {mobileOpenDropdown === cat.label && (

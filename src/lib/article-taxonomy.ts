@@ -1,6 +1,9 @@
 import { Article, ArticleCategory, ArticleSubcategory } from "./types";
 
 export const ARTICLE_TAXONOMY = {
+    "public-voice": [
+        { value: "opinion", label: "Public Voice" },
+    ],
     music: [
         { value: "review", label: "Music Review" },
         { value: "news", label: "News" },
@@ -38,6 +41,7 @@ export function getArticleSubcategoryLabel(article: Pick<Article, "category" | "
 }
 
 export function getArticleCategoryLabel(category: ArticleCategory): string {
+    if (category === "public-voice") return "Public Voice";
     return category.charAt(0).toUpperCase() + category.slice(1);
 }
 

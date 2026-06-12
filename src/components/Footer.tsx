@@ -55,6 +55,7 @@ export default function Footer() {
                         </h3>
                         <ul className="space-y-3">
                             {[
+                                { href: "/public-voice", label: "Public Voice" },
                                 { href: "/music", label: "Music" },
                                 { href: "/lifestyle", label: "Lifestyle" },
                                 { href: "/sports", label: "Sports" },

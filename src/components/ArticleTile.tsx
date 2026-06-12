@@ -5,6 +5,7 @@ import { Article } from "@/lib/types";
 import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
+    "public-voice": "white",
     music: "purple",
     lifestyle: "lime",
     sports: "magenta",

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { getTagHref } from "@/lib/tags";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
+    "public-voice": "lime",
     music: "purple",
     lifestyle: "lime",
     sports: "magenta",
