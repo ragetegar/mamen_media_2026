@@ -177,6 +177,10 @@ CREATE TABLE public.profiles (
   email TEXT UNIQUE,
   avatar TEXT,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'contributor', 'admin')),
+  is_verified BOOLEAN NOT NULL DEFAULT false,
+  official_partner_name TEXT,
+  official_partner_logo TEXT,
+  official_partner_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

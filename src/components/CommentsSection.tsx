@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { MessageCircle, LogIn, Send, Trash2, Reply, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { RoleBadge, VerifiedBadge } from "@/components/ProfileBadges";
 
 interface Comment {
     id: string;
@@ -18,6 +19,7 @@ interface Comment {
     user_handle: string;
     user_avatar: string | null;
     user_role: "admin" | "contributor" | "user";
+    user_is_verified?: boolean | null;
 }
 
 interface CommentsSectionProps {
@@ -123,16 +125,8 @@ function CommentCard({
                     <div>
                         <div className="flex items-center gap-2">
                             <UserName name={comment.user_name} handle={comment.user_handle} />
-                            {comment.user_role === "admin" && (
-                                <span className="text-xs px-1.5 py-0.5 bg-mamen-purple text-white font-bold uppercase tracking-wider">
-                                    Admin
-                                </span>
-                            )}
-                            {comment.user_role === "contributor" && (
-                                <span className="text-xs px-1.5 py-0.5 bg-mamen-magenta text-white font-bold uppercase tracking-wider">
-                                    Contributor
-                                </span>
-                            )}
+                            {comment.user_is_verified && <VerifiedBadge compact />}
+                            <RoleBadge role={comment.user_role} compact />
                         </div>
                         <p className="text-xs text-mamen-gray-700">
                             {formatDate(comment.created_at)}
@@ -186,7 +180,7 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
     const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
     // Fetch comments from Supabase
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from("comments_with_profiles")
@@ -202,13 +196,13 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
         } finally {
             setLoading(false);
         }
-    };
+    }, [parentColumn, parentId]);
 
     useEffect(() => {
         if (parentId) {
             fetchComments();
         }
-    }, [parentId]);
+    }, [fetchComments, parentId]);
 
     // Focus reply input when replying
     useEffect(() => {
@@ -354,16 +348,8 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
                     <div className="flex items-center gap-3 mb-3">
                         <AvatarCircle src={user.avatar} name={user.name} handle={user.handle} size={36} />
                         <UserName name={user.name} handle={user.handle} />
-                        {user.role === "admin" && (
-                            <span className="text-xs px-2 py-0.5 bg-mamen-purple text-white font-bold uppercase tracking-wider">
-                                Admin
-                            </span>
-                        )}
-                        {user.role === "contributor" && (
-                            <span className="text-xs px-2 py-0.5 bg-mamen-magenta text-white font-bold uppercase tracking-wider">
-                                Contributor
-                            </span>
-                        )}
+                        {user.is_verified && <VerifiedBadge compact />}
+                        <RoleBadge role={user.role} compact />
                     </div>
                     <textarea
                         value={body}

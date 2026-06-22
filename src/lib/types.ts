@@ -277,6 +277,11 @@ export interface ProfileSnippet {
     name: string;
     handle: string;
     avatar: string;
+    role?: "admin" | "contributor" | "user";
+    is_verified?: boolean;
+    official_partner_name?: string;
+    official_partner_logo?: string;
+    official_partner_url?: string;
 }
 
 // ── Follow System ──

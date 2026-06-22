@@ -17,6 +17,7 @@ import FollowCounts from "@/components/FollowCounts";
 import FollowListModal from "@/components/FollowListModal";
 import { Concert } from "@/lib/types";
 import { isMutualFollow, getOrCreateConversation } from "@/lib/data";
+import { OfficialPartnerBadge, RoleBadge, VerifiedBadge } from "@/components/ProfileBadges";
 
 interface ProfileClientProps {
     handle: string;
@@ -100,6 +101,10 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                     social_tiktok: data.social_tiktok || "",
                     social_x: data.social_x || "",
                     favorite_concert_ids: data.favorite_concert_ids || [],
+                    is_verified: Boolean(data.is_verified),
+                    official_partner_name: data.official_partner_name || "",
+                    official_partner_logo: data.official_partner_logo || "",
+                    official_partner_url: data.official_partner_url || "",
                 };
 
                 setProfileUser(profile);
@@ -277,12 +282,8 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                                 <h1 className="font-headline text-2xl md:text-3xl font-black text-mamen-white leading-none">
                                     {profileUser?.name}
                                 </h1>
-                                {profileUser?.role === "admin" && (
-                                    <span className="text-[10px] px-2 py-0.5 bg-mamen-purple text-white font-bold uppercase tracking-wider rounded-full">Admin</span>
-                                )}
-                                {profileUser?.role === "contributor" && (
-                                    <span className="text-[10px] px-2 py-0.5 bg-mamen-magenta text-white font-bold uppercase tracking-wider rounded-full">Contributor</span>
-                                )}
+                                {profileUser?.is_verified && <VerifiedBadge />}
+                                <RoleBadge role={profileUser?.role} />
                             </div>
                             <p className="text-mamen-gray-400 text-sm font-medium">@{profileUser?.handle}</p>
 
@@ -324,30 +325,40 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                             </div>
                         </div>
 
-                        {/* Edit button (owner) or Follow button (visitor) */}
-                        {isOwner && !isEditing && (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="flex items-center gap-2 px-3 py-1.5 border-2 border-mamen-gray-700 text-mamen-gray-200 font-headline text-xs font-bold uppercase tracking-wider hover:bg-mamen-gray-800 hover:text-white transition-colors shrink-0"
-                            >
-                                <Settings size={12} /> Edit
-                            </button>
-                        )}
-                        {!isOwner && profileUser && (
-                            <div className="shrink-0 flex items-center gap-2">
-                                <FollowButton targetUserId={profileUser.id} />
-                                {user && canMessage && (
-                                    <button
-                                        onClick={handleStartDm}
-                                        disabled={startingDm}
-                                        className="flex items-center gap-2 px-3 py-1.5 border-2 border-mamen-purple text-mamen-purple font-headline text-xs font-bold uppercase tracking-wider hover:bg-mamen-purple hover:text-white transition-colors shrink-0 cursor-pointer disabled:opacity-50"
-                                    >
-                                        <MessageCircle size={12} />
-                                        {startingDm ? "..." : "Message"}
-                                    </button>
-                                )}
-                            </div>
-                        )}
+                        <div className="shrink-0 flex flex-col items-center sm:items-end gap-2">
+                            {(profileUser?.official_partner_name || profileUser?.official_partner_logo) && (
+                                <OfficialPartnerBadge
+                                    name={profileUser.official_partner_name}
+                                    logo={profileUser.official_partner_logo}
+                                    url={profileUser.official_partner_url}
+                                />
+                            )}
+
+                            {/* Edit button (owner) or Follow button (visitor) */}
+                            {isOwner && !isEditing && (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 border-2 border-mamen-gray-700 text-mamen-gray-200 font-headline text-xs font-bold uppercase tracking-wider hover:bg-mamen-gray-800 hover:text-white transition-colors shrink-0"
+                                >
+                                    <Settings size={12} /> Edit
+                                </button>
+                            )}
+                            {!isOwner && profileUser && (
+                                <div className="flex items-center gap-2">
+                                    <FollowButton targetUserId={profileUser.id} />
+                                    {user && canMessage && (
+                                        <button
+                                            onClick={handleStartDm}
+                                            disabled={startingDm}
+                                            className="flex items-center gap-2 px-3 py-1.5 border-2 border-mamen-purple text-mamen-purple font-headline text-xs font-bold uppercase tracking-wider hover:bg-mamen-purple hover:text-white transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                                        >
+                                            <MessageCircle size={12} />
+                                            {startingDm ? "..." : "Message"}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Inline Edit Form */}

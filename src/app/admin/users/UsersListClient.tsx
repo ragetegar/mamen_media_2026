@@ -2,23 +2,21 @@
 
 import { useAuth, AuthUser } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import Button from "@/components/ui/Button";
+import { getAdminUsers, updateAdminUserBadges, updateAdminUserRole } from "@/app/admin/actions";
+import { RoleBadge, VerifiedBadge } from "@/components/ProfileBadges";
 
 export default function UsersListClient() {
     const { user } = useAuth();
     const [usersList, setUsersList] = useState<AuthUser[]>([]);
     const [error, setError] = useState("");
+    const [savingId, setSavingId] = useState<string | null>(null);
 
     const fetchUsers = async () => {
-        const { data, error } = await supabase
-            .from("profiles")
-            .select("*");
-
-        if (error) {
-            setError("Failed to load users: " + error.message);
-        } else if (data) {
+        try {
+            const data = await getAdminUsers();
             setUsersList(data as AuthUser[]);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to load users");
         }
     };
 
@@ -38,15 +36,35 @@ export default function UsersListClient() {
             return;
         }
 
-        const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ role: newRole })
-            .eq("id", targetId);
+        setSavingId(targetId);
+        try {
+            await updateAdminUserRole(targetId, newRole);
+            await fetchUsers();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to update role");
+        } finally {
+            setSavingId(null);
+        }
+    };
 
-        if (!updateError) {
-            fetchUsers(); // refresh
-        } else {
-            setError(updateError.message || "Failed to update role");
+    const handleBadgeChange = async (
+        target: AuthUser,
+        updates: Partial<Pick<AuthUser, "is_verified" | "official_partner_name" | "official_partner_logo" | "official_partner_url">>,
+    ) => {
+        setError("");
+        setSavingId(target.id);
+        try {
+            await updateAdminUserBadges(target.id, {
+                is_verified: updates.is_verified ?? target.is_verified ?? false,
+                official_partner_name: updates.official_partner_name ?? target.official_partner_name ?? "",
+                official_partner_logo: updates.official_partner_logo ?? target.official_partner_logo ?? "",
+                official_partner_url: updates.official_partner_url ?? target.official_partner_url ?? "",
+            });
+            await fetchUsers();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to update profile badges");
+        } finally {
+            setSavingId(null);
         }
     };
 
@@ -81,6 +99,9 @@ export default function UsersListClient() {
                             <th className="text-left px-4 py-3 font-headline text-xs tracking-wider uppercase text-mamen-gray-200">
                                 Role
                             </th>
+                            <th className="text-left px-4 py-3 font-headline text-xs tracking-wider uppercase text-mamen-gray-200">
+                                Badges
+                            </th>
                             <th className="text-right px-4 py-3 font-headline text-xs tracking-wider uppercase text-mamen-gray-200">
                                 Action
                             </th>
@@ -107,21 +128,58 @@ export default function UsersListClient() {
                                     {u.email}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className={`text-xs px-2 py-1 font-bold uppercase tracking-wider ${u.role === "admin"
-                                        ? "text-mamen-purple"
-                                        : u.role === "contributor"
-                                            ? "text-mamen-magenta"
-                                            : "text-mamen-lime"
-                                        }`}>
-                                        {u.role}
-                                    </span>
+                                    <RoleBadge role={u.role} />
+                                    {u.role === "user" && (
+                                        <span className="text-xs px-2 py-1 font-bold uppercase tracking-wider text-mamen-lime">
+                                            User
+                                        </span>
+                                    )}
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="space-y-3 min-w-64">
+                                        <label className="flex items-center gap-2 text-xs text-mamen-gray-200">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(u.is_verified)}
+                                                disabled={savingId === u.id}
+                                                onChange={(e) => handleBadgeChange(u, { is_verified: e.target.checked })}
+                                                className="accent-[#1D9BF0]"
+                                            />
+                                            <span className="inline-flex items-center gap-1">
+                                                Verified <VerifiedBadge compact />
+                                            </span>
+                                        </label>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            <input
+                                                value={u.official_partner_name || ""}
+                                                onChange={(e) => setUsersList((prev) => prev.map((item) => item.id === u.id ? { ...item, official_partner_name: e.target.value } : item))}
+                                                onBlur={(e) => handleBadgeChange(u, { official_partner_name: e.target.value })}
+                                                placeholder="Partner name"
+                                                className="bg-mamen-gray-900 border border-mamen-gray-700 text-mamen-white px-2 py-1 text-xs outline-none focus:border-mamen-purple"
+                                            />
+                                            <input
+                                                value={u.official_partner_logo || ""}
+                                                onChange={(e) => setUsersList((prev) => prev.map((item) => item.id === u.id ? { ...item, official_partner_logo: e.target.value } : item))}
+                                                onBlur={(e) => handleBadgeChange(u, { official_partner_logo: e.target.value })}
+                                                placeholder="Logo URL"
+                                                className="bg-mamen-gray-900 border border-mamen-gray-700 text-mamen-white px-2 py-1 text-xs outline-none focus:border-mamen-purple"
+                                            />
+                                            <input
+                                                value={u.official_partner_url || ""}
+                                                onChange={(e) => setUsersList((prev) => prev.map((item) => item.id === u.id ? { ...item, official_partner_url: e.target.value } : item))}
+                                                onBlur={(e) => handleBadgeChange(u, { official_partner_url: e.target.value })}
+                                                placeholder="Partner link"
+                                                className="bg-mamen-gray-900 border border-mamen-gray-700 text-mamen-white px-2 py-1 text-xs outline-none focus:border-mamen-purple"
+                                            />
+                                        </div>
+                                    </div>
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                     <select
                                         className="bg-mamen-gray-900 border border-mamen-gray-700 text-mamen-white px-2 py-1 text-sm rounded outline-none cursor-pointer hover:border-mamen-purple"
                                         value={u.role}
-                                        onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
-                                        disabled={u.id === user?.id}
+                                        onChange={(e) => handleRoleChange(u.id, e.target.value as AuthUser["role"])}
+                                        disabled={u.id === user?.id || savingId === u.id}
                                     >
                                         <option value="admin">Admin</option>
                                         <option value="contributor">Contributor</option>

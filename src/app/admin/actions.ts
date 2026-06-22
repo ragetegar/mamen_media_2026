@@ -175,6 +175,77 @@ export async function getAdminDashboardData() {
     };
 }
 
+export async function getAdminUsers() {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") {
+        throw new Error("Only admins can manage users");
+    }
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+    if (error) throw new Error(`Failed to load users: ${error.message}`);
+    return data || [];
+}
+
+export async function updateAdminUserRole(targetId: string, newRole: "admin" | "contributor" | "user") {
+    const { supabase, user, profile } = await getAdminContext();
+    if (profile.role !== "admin") {
+        throw new Error("Only admins can manage users");
+    }
+    if (targetId === user.id && newRole !== "admin") {
+        throw new Error("You cannot demote yourself from admin.");
+    }
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", targetId);
+
+    if (error) throw new Error(`Failed to update role: ${error.message}`);
+}
+
+export async function updateAdminUserBadges(
+    targetId: string,
+    badges: {
+        is_verified?: boolean;
+        official_partner_name?: string;
+        official_partner_logo?: string;
+        official_partner_url?: string;
+    },
+) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") {
+        throw new Error("Only admins can manage users");
+    }
+
+    const nullIfEmpty = (value?: string) => {
+        const trimmed = value?.trim();
+        return trimmed ? trimmed : null;
+    };
+
+    const updates: {
+        is_verified?: boolean;
+        official_partner_name?: string | null;
+        official_partner_logo?: string | null;
+        official_partner_url?: string | null;
+    } = {};
+
+    if (badges.is_verified !== undefined) updates.is_verified = Boolean(badges.is_verified);
+    if (badges.official_partner_name !== undefined) updates.official_partner_name = nullIfEmpty(badges.official_partner_name);
+    if (badges.official_partner_logo !== undefined) updates.official_partner_logo = nullIfEmpty(badges.official_partner_logo);
+    if (badges.official_partner_url !== undefined) updates.official_partner_url = nullIfEmpty(badges.official_partner_url);
+
+    const { error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", targetId);
+
+    if (error) throw new Error(`Failed to update profile badges: ${error.message}`);
+}
+
 export async function createArticle(article: Omit<Article, "id" | "created_at" | "updated_at">) {
     const { supabase, user, profile } = await getAdminContext();
     assertValidArticleTaxonomy(article.category, article.subcategory);

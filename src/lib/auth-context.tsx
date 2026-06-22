@@ -16,14 +16,23 @@ export interface AuthUser {
     social_tiktok?: string;
     social_x?: string;
     favorite_concert_ids?: string[];
+    is_verified?: boolean;
+    official_partner_name?: string;
+    official_partner_logo?: string;
+    official_partner_url?: string;
 }
+
+type EditableProfileFields = Pick<
+    AuthUser,
+    "name" | "handle" | "avatar" | "banner_image" | "social_instagram" | "social_tiktok" | "social_x" | "favorite_concert_ids"
+>;
 
 interface AuthContextType {
     user: AuthUser | null;
     loginWithMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>;
     loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
-    updateProfile: (fields: Partial<Omit<AuthUser, "id" | "email" | "role">>) => Promise<{ success: boolean; error?: string }>;
+    updateProfile: (fields: Partial<EditableProfileFields>) => Promise<{ success: boolean; error?: string }>;
     isLoading: boolean;
 }
 
@@ -41,6 +50,10 @@ type ProfileRow = {
     social_tiktok?: string | null;
     social_x?: string | null;
     favorite_concert_ids?: string[] | null;
+    is_verified?: boolean | null;
+    official_partner_name?: string | null;
+    official_partner_logo?: string | null;
+    official_partner_url?: string | null;
 };
 
 function getErrorMessage(error: unknown) {
@@ -67,6 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             social_tiktok: data.social_tiktok || "",
             social_x: data.social_x || "",
             favorite_concert_ids: data.favorite_concert_ids || [],
+            is_verified: Boolean(data.is_verified),
+            official_partner_name: data.official_partner_name || "",
+            official_partner_logo: data.official_partner_logo || "",
+            official_partner_url: data.official_partner_url || "",
         });
 
         const fetchProfile = async (authUser: User) => {
@@ -218,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     };
 
-    const updateProfile = async (fields: Partial<Omit<AuthUser, "id" | "email" | "role">>) => {
+    const updateProfile = async (fields: Partial<EditableProfileFields>) => {
         if (!user) return { success: false, error: "Not logged in" };
 
         if (fields.handle && !fields.handle.match(/^[a-zA-Z0-9_]+$/)) {
@@ -226,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-            const updates: Partial<Omit<AuthUser, "id" | "email" | "role">> = {};
+            const updates: Partial<EditableProfileFields> = {};
             if (fields.name !== undefined) updates.name = fields.name;
             if (fields.handle !== undefined) updates.handle = fields.handle;
             if (fields.avatar !== undefined) updates.avatar = fields.avatar;
