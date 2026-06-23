@@ -24,7 +24,7 @@ VALUES (
   'Mahasiswa Gelar Aksi “Menuju Indonesia Bangkrut” Kritik Kebijakan Prabowo',
   'public-voice',
   'opinion',
-  '/images/articles/mahasiswa-menuju-indonesia-bangkrut.svg',
+  'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80',
   'Ratusan mahasiswa turun ke jalan di Jakarta untuk memprotes kenaikan harga bensin, prioritas anggaran, dan meluasnya peran militer di ranah sipil.',
   $$<p>Ratusan mahasiswa menggelar aksi bertajuk “Menuju Indonesia Bangkrut” di Jakarta pada 12 Juni 2026. Mereka bergerak menuju Bundaran HI untuk menyuarakan penolakan terhadap kenaikan harga bensin serta mengkritik prioritas belanja pemerintahan Presiden Prabowo Subianto. Sejumlah peserta aksi disebut tertahan oleh barisan polisi dan personel militer sebelum mencapai lokasi yang ditentukan.</p>
 

@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Public Voice Daily Cron
+
+`vercel.json` runs `/api/cron/public-voice` every day at `02:00 UTC`, which is `09:00 Asia/Jakarta`.
+
+Required production env vars:
+
+- `CRON_SECRET`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Recommended for consistent CDN cover images:
+
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Optional:
+
+- `PUBLIC_VOICE_RSS_FEEDS` comma-separated RSS feed URLs. Defaults to Antara latest, national, and politics feeds.
