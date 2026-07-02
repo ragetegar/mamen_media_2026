@@ -1,5 +1,7 @@
 import NestedArticlePage, { getNestedArticleMetadata } from "@/components/NestedArticlePage";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
     params: Promise<{ subcategory: string; slug: string }>;
 }

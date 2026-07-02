@@ -1,5 +1,7 @@
 import ArticleSubcategoryPage from "@/components/ArticleSubcategoryPage";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
     params: Promise<{ subcategory: string }>;
 }

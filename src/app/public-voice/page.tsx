@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     description: "Suara, keresahan, dan perspektif publik tentang isu yang sedang dibicarakan.",
 };
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
     searchParams: Promise<{ sub?: string }>;
 }

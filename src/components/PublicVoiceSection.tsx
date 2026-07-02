@@ -10,7 +10,7 @@ interface PublicVoiceSectionProps {
 
 export default function PublicVoiceSection({ articles }: PublicVoiceSectionProps) {
     const featured = articles[0];
-    const secondary = articles.slice(1, 5);
+    const secondary = articles.slice(1);
 
     if (!featured) return null;
 
@@ -24,9 +24,9 @@ export default function PublicVoiceSection({ articles }: PublicVoiceSectionProps
                     seeAllLabel="Lihat Semua →"
                 />
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <Link href={getArticleHref(featured)} className="lg:col-span-7 group block">
-                        <article className="card-frame overflow-hidden h-full">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <Link href={getArticleHref(featured)} className="lg:col-span-7 lg:sticky lg:top-24 group block">
+                        <article className="card-frame overflow-hidden">
                             <div className="relative aspect-[16/10] overflow-hidden">
                                 <Image
                                     src={featured.cover_image}

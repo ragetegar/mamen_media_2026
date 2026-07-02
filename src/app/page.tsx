@@ -8,9 +8,13 @@ import SpotifyPodcast from "@/components/SpotifyPodcast";
 import PublicVoiceSection from "@/components/PublicVoiceSection";
 import { getArticles, getConcerts, getFeaturedBrands } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const articles = await getArticles();
-  const publicVoiceArticles = articles.filter((article) => article.category === "public-voice");
+  const [articles, publicVoiceArticles] = await Promise.all([
+    getArticles(),
+    getArticles("public-voice"),
+  ]);
   const editorialArticles = articles.filter((article) => article.category !== "public-voice");
   const topArticles = editorialArticles.slice(0, 4); // For the HeroBanner
   const latestArticles = editorialArticles.slice(4, 10); // For Latest Drops
