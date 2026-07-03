@@ -10,7 +10,7 @@ interface PublicVoiceSectionProps {
 
 export default function PublicVoiceSection({ articles }: PublicVoiceSectionProps) {
     const featured = articles[0];
-    const secondary = articles.slice(1);
+    const secondary = articles.slice(1, 5);
 
     if (!featured) return null;
 
