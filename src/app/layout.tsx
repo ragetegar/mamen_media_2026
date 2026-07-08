@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth-context";
 import AuthGuard from "@/components/AuthGuard";
 import PWARegistration from "@/components/PWARegistration";
+import { GoogleAdsenseScript } from "@/components/GoogleAds";
 import type { Viewport } from "next";
 import Script from "next/script";
 
@@ -82,6 +83,7 @@ export default function RootLayout({
             gtag('config', 'G-E0BS1D856V');
           `}
         </Script>
+        <GoogleAdsenseScript />
         <PWARegistration />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>

@@ -16,6 +16,7 @@ import { ArticleCategory } from "@/lib/types";
 import { getArticleCategoryLabel, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 import Link from "next/link";
 import { getTagHref } from "@/lib/tags";
+import { GoogleAdUnit } from "@/components/GoogleAds";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
     "public-voice": "lime",
@@ -29,6 +30,30 @@ interface ArticleDetailPageProps {
     slug: string;
     expectedCategory?: ArticleCategory;
     expectedSubcategory?: string;
+}
+
+const articleProseClassName = `prose prose-invert prose-lg max-w-none
+              [&_h2]:font-headline [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-mamen-lime [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:mt-10 [&_h2]:mb-4
+              [&_p]:text-mamen-gray-100 [&_p]:leading-relaxed [&_p]:mb-6
+              [&_strong]:text-mamen-white
+              [&_a]:text-mamen-purple [&_a]:underline [&_a]:hover:text-mamen-magenta`;
+
+function splitArticleBodyHtml(bodyHtml: string) {
+    const paragraphEnds = Array.from(bodyHtml.matchAll(/<\/p>/gi))
+        .map((match) => (typeof match.index === "number" ? match.index + match[0].length : -1))
+        .filter((index) => index > 0);
+
+    if (paragraphEnds.length < 4) {
+        return { beforeAd: bodyHtml, afterAd: "" };
+    }
+
+    const targetParagraph = Math.min(3, Math.max(2, Math.floor(paragraphEnds.length / 2)));
+    const splitIndex = paragraphEnds[targetParagraph - 1];
+
+    return {
+        beforeAd: bodyHtml.slice(0, splitIndex),
+        afterAd: bodyHtml.slice(splitIndex),
+    };
 }
 
 export default async function ArticleDetailPage({ slug, expectedCategory, expectedSubcategory }: ArticleDetailPageProps) {
@@ -46,6 +71,7 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
     const products = await getArticleProducts(article.id);
     const relatedArticles = await getRelatedArticles(article.slug, 3);
     const linkedConcerts = await getArticleLinkedConcerts(article);
+    const articleBody = splitArticleBodyHtml(article.body_html);
 
     return (
         <>
@@ -108,87 +134,102 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
 
             {/* Article Body */}
             <section className="bg-mamen-black py-12 md:py-16">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div
-                        className="prose prose-invert prose-lg max-w-none
-              [&_h2]:font-headline [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-mamen-lime [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:mt-10 [&_h2]:mb-4
-              [&_p]:text-mamen-gray-100 [&_p]:leading-relaxed [&_p]:mb-6
-              [&_strong]:text-mamen-white
-              [&_a]:text-mamen-purple [&_a]:underline [&_a]:hover:text-mamen-magenta"
-                        dangerouslySetInnerHTML={{ __html: article.body_html }}
-                    />
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,760px)_300px] lg:justify-center lg:items-start">
+                        <article className="min-w-0">
+                            <div
+                                className={articleProseClassName}
+                                dangerouslySetInnerHTML={{ __html: articleBody.beforeAd }}
+                            />
 
-                    {/* Affiliate Products */}
-                    {products.length > 0 && (
-                        <div className="mt-12 pt-8 border-t-4 border-mamen-purple">
-                            <h2 className="font-headline text-2xl font-bold text-mamen-white uppercase tracking-wide mb-6">
-                                Featured <span className="text-mamen-magenta">Products</span>
-                            </h2>
-                            <div className="space-y-4">
-                                {products.map((product) => (
-                                    <AffiliateProductTile key={product.id} product={product} />
-                                ))}
+                            {articleBody.afterAd && (
+                                <GoogleAdUnit placement="article" className="my-10 min-h-[160px]" format="horizontal" />
+                            )}
+
+                            {articleBody.afterAd && (
+                                <div
+                                    className={articleProseClassName}
+                                    dangerouslySetInnerHTML={{ __html: articleBody.afterAd }}
+                                />
+                            )}
+
+                            {/* Affiliate Products */}
+                            {products.length > 0 && (
+                                <div className="mt-12 pt-8 border-t-4 border-mamen-purple">
+                                    <h2 className="font-headline text-2xl font-bold text-mamen-white uppercase tracking-wide mb-6">
+                                        Featured <span className="text-mamen-magenta">Products</span>
+                                    </h2>
+                                    <div className="space-y-4">
+                                        {products.map((product) => (
+                                            <AffiliateProductTile key={product.id} product={product} />
+                                        ))}
+                                    </div>
+                                    <p className="mt-4 text-xs text-mamen-gray-700">
+                                        <span className="text-mamen-magenta font-bold">Affiliate:</span> Links above may
+                                        earn us a commission. This doesn&apos;t affect our editorial independence.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Linked Concerts */}
+                            {linkedConcerts.length > 0 && (
+                                <div className="mt-12 pt-8 border-t-4 border-mamen-magenta">
+                                    <h2 className="font-headline text-2xl font-bold text-mamen-white uppercase tracking-wide mb-2">
+                                        Related <span className="text-mamen-magenta">Concerts</span>
+                                    </h2>
+                                    <p className="text-sm text-mamen-gray-200 mb-6">
+                                        This article talks about these upcoming events - grab your tickets!
+                                    </p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {linkedConcerts.map((concert) => (
+                                            <ConcertTile key={concert.id} concert={concert} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Share Buttons */}
+                            <div className="mt-12 pt-8 border-t border-mamen-gray-800">
+                                <h3 className="font-headline text-sm font-bold tracking-widest text-mamen-gray-200 uppercase mb-4">
+                                    Share This Article
+                                </h3>
+                                <div className="flex gap-3 flex-wrap">
+                                    <a
+                                        href={`https://wa.me/?text=${encodeURIComponent(article.title)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 bg-[#25D366] text-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-black shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
+                                    >
+                                        WhatsApp
+                                    </a>
+                                    <a
+                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 bg-mamen-black text-mamen-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-white shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
+                                    >
+                                        <span className="flex items-center gap-1.5">
+                                            <Share2 size={12} /> Post on X
+                                        </span>
+                                    </a>
+                                    <button
+                                        className="px-4 py-2 bg-mamen-gray-800 text-mamen-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-gray-700 shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all cursor-pointer"
+                                    >
+                                        <span className="flex items-center gap-1.5">
+                                            <Copy size={12} /> Copy Link
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
-                            <p className="mt-4 text-xs text-mamen-gray-700">
-                                <span className="text-mamen-magenta font-bold">Affiliate:</span> Links above may
-                                earn us a commission. This doesn&apos;t affect our editorial independence.
-                            </p>
-                        </div>
-                    )}
 
-                    {/* Linked Concerts */}
-                    {linkedConcerts.length > 0 && (
-                        <div className="mt-12 pt-8 border-t-4 border-mamen-magenta">
-                            <h2 className="font-headline text-2xl font-bold text-mamen-white uppercase tracking-wide mb-2">
-                                🎤 Related <span className="text-mamen-magenta">Concerts</span>
-                            </h2>
-                            <p className="text-sm text-mamen-gray-200 mb-6">
-                                This article talks about these upcoming events — grab your tickets!
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {linkedConcerts.map((concert) => (
-                                    <ConcertTile key={concert.id} concert={concert} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                            {/* Comments */}
+                            <ArticlePageClient articleId={article.id} />
+                        </article>
 
-                    {/* Share Buttons */}
-                    <div className="mt-12 pt-8 border-t border-mamen-gray-800">
-                        <h3 className="font-headline text-sm font-bold tracking-widest text-mamen-gray-200 uppercase mb-4">
-                            Share This Article
-                        </h3>
-                        <div className="flex gap-3 flex-wrap">
-                            <a
-                                href={`https://wa.me/?text=${encodeURIComponent(article.title)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-4 py-2 bg-[#25D366] text-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-black shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
-                            >
-                                WhatsApp
-                            </a>
-                            <a
-                                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-4 py-2 bg-mamen-black text-mamen-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-white shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
-                            >
-                                <span className="flex items-center gap-1.5">
-                                    <Share2 size={12} /> Post on X
-                                </span>
-                            </a>
-                            <button
-                                className="px-4 py-2 bg-mamen-gray-800 text-mamen-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-gray-700 shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all cursor-pointer"
-                            >
-                                <span className="flex items-center gap-1.5">
-                                    <Copy size={12} /> Copy Link
-                                </span>
-                            </button>
+                        <div className="hidden lg:block lg:sticky lg:top-24">
+                            <GoogleAdUnit placement="rail" className="min-h-[280px]" format="rectangle" />
                         </div>
                     </div>
-
-                    {/* Comments */}
-                    <ArticlePageClient articleId={article.id} />
                 </div>
             </section>
 
