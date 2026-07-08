@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { ProfileSnippet } from "@/lib/types";
+import { ProfileTrustBadges } from "@/components/ProfileBadges";
 import { Send } from "lucide-react";
 
 interface ChatMessage {
@@ -96,9 +97,12 @@ export default function ChatThread({
                                     }`}
                                 >
                                     {!isSelf && (
-                                        <p className="text-[10px] font-headline font-bold text-mamen-purple mb-0.5">
-                                            {msg.sender?.name || "Anonymous"}
-                                        </p>
+                                        <div className="mb-0.5 flex items-center gap-1.5 flex-wrap">
+                                            <p className="text-[10px] font-headline font-bold text-mamen-purple">
+                                                {msg.sender?.name || "Anonymous"}
+                                            </p>
+                                            <ProfileTrustBadges profile={msg.sender} compact />
+                                        </div>
                                     )}
                                     <p>{msg.body}</p>
                                     <p className={`text-[10px] mt-1 ${isSelf ? "text-mamen-gray-200" : "text-zinc-600"}`}>

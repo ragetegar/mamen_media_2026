@@ -214,6 +214,7 @@ export async function updateAdminUserBadges(
         official_partner_name?: string;
         official_partner_logo?: string;
         official_partner_url?: string;
+        barengan_custom_tag?: string;
     },
 ) {
     const { supabase, profile } = await getAdminContext();
@@ -231,12 +232,20 @@ export async function updateAdminUserBadges(
         official_partner_name?: string | null;
         official_partner_logo?: string | null;
         official_partner_url?: string | null;
+        barengan_custom_tag?: string | null;
     } = {};
 
     if (badges.is_verified !== undefined) updates.is_verified = Boolean(badges.is_verified);
     if (badges.official_partner_name !== undefined) updates.official_partner_name = nullIfEmpty(badges.official_partner_name);
     if (badges.official_partner_logo !== undefined) updates.official_partner_logo = nullIfEmpty(badges.official_partner_logo);
     if (badges.official_partner_url !== undefined) updates.official_partner_url = nullIfEmpty(badges.official_partner_url);
+    if (badges.barengan_custom_tag !== undefined) {
+        const customTag = nullIfEmpty(badges.barengan_custom_tag);
+        if (customTag && customTag.length > 24) {
+            throw new Error("Custom tag must be 24 characters or fewer");
+        }
+        updates.barengan_custom_tag = customTag;
+    }
 
     const { error } = await supabase
         .from("profiles")

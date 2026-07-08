@@ -20,6 +20,8 @@ export interface AuthUser {
     official_partner_name?: string;
     official_partner_logo?: string;
     official_partner_url?: string;
+    barengan_custom_tag?: string;
+    barengan_trust_score?: number;
 }
 
 type EditableProfileFields = Pick<
@@ -54,6 +56,8 @@ type ProfileRow = {
     official_partner_name?: string | null;
     official_partner_logo?: string | null;
     official_partner_url?: string | null;
+    barengan_custom_tag?: string | null;
+    barengan_trust_score?: number | null;
 };
 
 function getErrorMessage(error: unknown) {
@@ -84,6 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             official_partner_name: data.official_partner_name || "",
             official_partner_logo: data.official_partner_logo || "",
             official_partner_url: data.official_partner_url || "",
+            barengan_custom_tag: data.barengan_custom_tag || "",
+            barengan_trust_score: data.barengan_trust_score || 0,
         });
 
         const fetchProfile = async (authUser: User) => {

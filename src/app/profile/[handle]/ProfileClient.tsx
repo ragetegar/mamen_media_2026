@@ -17,7 +17,7 @@ import FollowCounts from "@/components/FollowCounts";
 import FollowListModal from "@/components/FollowListModal";
 import { Concert } from "@/lib/types";
 import { isMutualFollow, getOrCreateConversation } from "@/lib/data";
-import { OfficialPartnerBadge, RoleBadge, VerifiedBadge } from "@/components/ProfileBadges";
+import { OfficialPartnerBadge, ProfileTrustBadges } from "@/components/ProfileBadges";
 
 interface ProfileClientProps {
     handle: string;
@@ -105,6 +105,8 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                     official_partner_name: data.official_partner_name || "",
                     official_partner_logo: data.official_partner_logo || "",
                     official_partner_url: data.official_partner_url || "",
+                    barengan_custom_tag: data.barengan_custom_tag || "",
+                    barengan_trust_score: data.barengan_trust_score || 0,
                 };
 
                 setProfileUser(profile);
@@ -282,8 +284,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                                 <h1 className="font-headline text-2xl md:text-3xl font-black text-mamen-white leading-none">
                                     {profileUser?.name}
                                 </h1>
-                                {profileUser?.is_verified && <VerifiedBadge />}
-                                <RoleBadge role={profileUser?.role} />
+                                <ProfileTrustBadges profile={profileUser || undefined} />
                             </div>
                             <p className="text-mamen-gray-400 text-sm font-medium">@{profileUser?.handle}</p>
 

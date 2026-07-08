@@ -12,18 +12,22 @@ import {
     BarenganPost,
     BarenganMember,
     BarenganChatMessage,
+    BarenganUserRating,
     ProfileSnippet,
 } from "@/lib/types";
 import {
     getBarenganMembers,
     getBarenganChatMessages,
+    getBarenganRatingsForPost,
     requestToJoinBarengan,
     approveBarenganMember,
     rejectBarenganMember,
+    rateBarenganUser,
     sendBarenganChatMessage,
 } from "@/lib/data";
 import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
-import { Check, X, UserPlus, Users, MessageSquare, Clock } from "lucide-react";
+import { ProfileTrustBadges } from "@/components/ProfileBadges";
+import { Check, X, UserPlus, Users, MessageSquare, Clock, ThumbsUp, ThumbsDown } from "lucide-react";
 
 interface BarenganDetailClientProps {
     post: BarenganPost;
@@ -37,9 +41,12 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
     const [pendingMembers, setPendingMembers] = useState<BarenganMember[]>([]);
     const [approvedMembers, setApprovedMembers] = useState<BarenganMember[]>([]);
     const [chatMessages, setChatMessages] = useState<BarenganChatMessage[]>([]);
+    const [ratings, setRatings] = useState<BarenganUserRating[]>([]);
+    const [creatorProfile, setCreatorProfile] = useState<ProfileSnippet | null>(post.profile || null);
     const [joinMessage, setJoinMessage] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [ratingTargetId, setRatingTargetId] = useState<string | null>(null);
     const [sendingChat, setSendingChat] = useState(false);
     const [loginOpen, setLoginOpen] = useState(false);
     const [error, setError] = useState("");
@@ -49,6 +56,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
     const isApprovedMember = approvedMembers.some((m) => m.user_id === userId);
     const isPendingMember = pendingMembers.some((m) => m.user_id === userId);
     const hasGroupAccess = isCreator || isApprovedMember;
+    const eventEnded = hasBarenganEventEnded(post);
     const visibleMemberTotal = getBarenganMemberTotal(
         post,
         hasGroupAccess ? approvedMembers.length : undefined
@@ -98,7 +106,7 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
         approvedMembers.forEach((m) => {
             if (m.profile) profileMap[m.profile.id] = m.profile;
         });
-        if (post.profile) profileMap[post.profile.id] = post.profile;
+        if (creatorProfile) profileMap[creatorProfile.id] = creatorProfile;
 
         const realtimeMessages = newMessages as BarenganChatMessage[];
         const merged = realtimeMessages
@@ -109,7 +117,34 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
             }));
 
         return [...chatMessages, ...merged];
-    }, [newMessages, chatMessages, approvedMembers, post.profile]);
+    }, [newMessages, chatMessages, approvedMembers, creatorProfile]);
+
+    const ratingParticipants = useMemo(() => {
+        const participants: { user_id: string; profile?: ProfileSnippet | null }[] = [
+            { user_id: post.user_id, profile: creatorProfile },
+            ...approvedMembers.map((member) => ({
+                user_id: member.user_id,
+                profile: member.profile,
+            })),
+        ];
+
+        const seen = new Set<string>();
+        return participants.filter((participant) => {
+            if (seen.has(participant.user_id)) return false;
+            seen.add(participant.user_id);
+            return participant.user_id !== userId;
+        });
+    }, [approvedMembers, creatorProfile, post.user_id, userId]);
+
+    const currentUserRatings = useMemo(() => {
+        const map: Record<string, 1 | -1> = {};
+        ratings.forEach((rating) => {
+            if (rating.rater_id === userId) {
+                map[rating.target_user_id] = rating.rating;
+            }
+        });
+        return map;
+    }, [ratings, userId]);
 
     const handleRequestJoin = async () => {
         if (!userId) {
@@ -173,6 +208,61 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
         setSendingChat(false);
         // Realtime subscription will pick up the new message
     };
+
+    const refreshRatings = async () => {
+        if (!hasGroupAccess) return;
+        const ratingRows = await getBarenganRatingsForPost(post.id);
+        setRatings(ratingRows);
+    };
+
+    const applyTrustScore = (targetUserId: string, score?: number) => {
+        if (typeof score !== "number") return;
+
+        if (targetUserId === post.user_id) {
+            setCreatorProfile((prev) => prev ? { ...prev, barengan_trust_score: score } : prev);
+        }
+
+        setApprovedMembers((prev) => prev.map((member) => (
+            member.user_id === targetUserId && member.profile
+                ? { ...member, profile: { ...member.profile, barengan_trust_score: score } }
+                : member
+        )));
+    };
+
+    const handleRateUser = async (targetUserId: string, rating: 1 | -1) => {
+        setRatingTargetId(targetUserId);
+        setError("");
+        setSuccessMsg("");
+
+        const result = await rateBarenganUser({
+            barengan_post_id: post.id,
+            target_user_id: targetUserId,
+            rating,
+        });
+
+        if (result.success) {
+            applyTrustScore(targetUserId, result.target_score);
+            await refreshRatings();
+            setSuccessMsg("Rating saved.");
+        } else {
+            setError(result.error || "Failed to save rating");
+        }
+
+        setRatingTargetId(null);
+    };
+
+    useEffect(() => {
+        if (!hasGroupAccess) {
+            return;
+        }
+
+        let isMounted = true;
+        getBarenganRatingsForPost(post.id).then((ratingRows) => {
+            if (isMounted) setRatings(ratingRows);
+        });
+
+        return () => { isMounted = false; };
+    }, [hasGroupAccess, post.id]);
 
     return (
         <>
@@ -240,7 +330,10 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                                                 href={`/profile/${member.profile?.handle}`}
                                                 className="font-headline text-sm font-bold text-mamen-white hover:text-mamen-purple transition-colors"
                                             >
-                                                {member.profile?.name || "Anonymous"}
+                                                <span className="inline-flex items-center gap-2 flex-wrap">
+                                                    {member.profile?.name || "Anonymous"}
+                                                    <ProfileTrustBadges profile={member.profile} compact />
+                                                </span>
                                             </Link>
                                             <p className="text-xs text-mamen-gray-700">@{member.profile?.handle || "user"}</p>
                                             <p className="text-sm text-mamen-gray-100 mt-1">{member.message}</p>
@@ -327,6 +420,61 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
                 </div>
             </div>
 
+            {/* Post-event ratings */}
+            {hasGroupAccess && eventEnded && ratingParticipants.length > 0 && (
+                <div className="card-frame overflow-hidden mb-8">
+                    <div className="border-b-2 border-mamen-gray-800 px-6 py-4">
+                        <h2 className="font-headline text-lg font-bold text-mamen-white flex items-center gap-2">
+                            <ThumbsUp size={18} className="text-mamen-lime" />
+                            Rate Barengan Trust
+                        </h2>
+                    </div>
+                    <div className="p-6 space-y-3">
+                        {ratingParticipants.map((participant) => {
+                            const activeRating = currentUserRatings[participant.user_id];
+                            return (
+                                <div key={participant.user_id} className="flex items-center gap-3 p-3 bg-mamen-gray-900 border-2 border-mamen-gray-800">
+                                    <UserAvatar profile={participant.profile} size={36} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="font-headline text-sm font-bold text-mamen-white">
+                                                {participant.profile?.name || "Anonymous"}
+                                            </p>
+                                            <ProfileTrustBadges profile={participant.profile} compact />
+                                        </div>
+                                        <p className="text-xs text-mamen-gray-700">@{participant.profile?.handle || "user"}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <button
+                                            onClick={() => handleRateUser(participant.user_id, 1)}
+                                            disabled={ratingTargetId === participant.user_id}
+                                            className={`p-2 border-2 border-mamen-black transition-all cursor-pointer disabled:opacity-50 ${activeRating === 1
+                                                ? "bg-mamen-lime text-mamen-black"
+                                                : "bg-mamen-gray-800 text-mamen-gray-200 hover:bg-mamen-lime hover:text-mamen-black"
+                                                }`}
+                                            title="Trust"
+                                        >
+                                            <ThumbsUp size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleRateUser(participant.user_id, -1)}
+                                            disabled={ratingTargetId === participant.user_id}
+                                            className={`p-2 border-2 border-mamen-black transition-all cursor-pointer disabled:opacity-50 ${activeRating === -1
+                                                ? "bg-red-600 text-white"
+                                                : "bg-mamen-gray-800 text-mamen-gray-200 hover:bg-red-600 hover:text-white"
+                                                }`}
+                                            title="Untrust"
+                                        >
+                                            <ThumbsDown size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Group Chat — only for creator + approved members */}
             {hasGroupAccess && (
                 <div className="card-frame overflow-hidden mb-8">
@@ -360,30 +508,48 @@ export default function BarenganDetailClient({ post, currentUserId }: BarenganDe
 function MemberRow({ member }: { member: BarenganMember }) {
     return (
         <div className="flex items-center gap-3 p-3 bg-mamen-gray-900 border-2 border-mamen-gray-800">
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-mamen-purple bg-mamen-gray-800 shrink-0">
-                {member.profile?.avatar ? (
-                    <Image
-                        src={member.profile.avatar}
-                        alt={member.profile.name || "User"}
-                        width={32}
-                        height={32}
-                        className="object-cover w-full h-full"
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-mamen-gray-700 font-headline font-bold text-xs">
-                        {(member.profile?.name || "?")[0]?.toUpperCase()}
-                    </div>
-                )}
-            </div>
+            <UserAvatar profile={member.profile} size={32} />
             <div className="min-w-0">
                 <Link
                     href={`/profile/${member.profile?.handle}`}
                     className="font-headline text-sm font-bold text-mamen-white hover:text-mamen-purple transition-colors"
                 >
-                    {member.profile?.name || "Anonymous"}
+                    <span className="inline-flex items-center gap-2 flex-wrap">
+                        {member.profile?.name || "Anonymous"}
+                        <ProfileTrustBadges profile={member.profile} compact />
+                    </span>
                 </Link>
                 <p className="text-xs text-mamen-gray-700">@{member.profile?.handle || "user"}</p>
             </div>
         </div>
     );
+}
+
+function UserAvatar({ profile, size }: { profile?: ProfileSnippet | null; size: number }) {
+    return (
+        <div
+            className="rounded-full overflow-hidden border-2 border-mamen-purple bg-mamen-gray-800 shrink-0"
+            style={{ width: size, height: size }}
+        >
+            {profile?.avatar ? (
+                <Image
+                    src={profile.avatar}
+                    alt={profile.name || "User"}
+                    width={size}
+                    height={size}
+                    className="object-cover w-full h-full"
+                />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center text-mamen-gray-700 font-headline font-bold text-xs">
+                    {(profile?.name || "?")[0]?.toUpperCase()}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function hasBarenganEventEnded(post: BarenganPost) {
+    const eventEnd = post.concert?.end_datetime || post.concert?.start_datetime;
+    if (!eventEnd) return !post.is_active;
+    return new Date(eventEnd).getTime() < Date.now();
 }

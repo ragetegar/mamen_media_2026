@@ -245,6 +245,16 @@ export interface BarenganChatMessage {
     sender?: ProfileSnippet;
 }
 
+export interface BarenganUserRating {
+    id: string;
+    barengan_post_id: string;
+    rater_id: string;
+    target_user_id: string;
+    rating: 1 | -1;
+    created_at: string;
+    updated_at: string;
+}
+
 // Legacy — kept for backward compat with old data
 export interface BarenganResponse {
     id: string;
@@ -282,6 +292,8 @@ export interface ProfileSnippet {
     official_partner_name?: string;
     official_partner_logo?: string;
     official_partner_url?: string;
+    barengan_custom_tag?: string;
+    barengan_trust_score?: number;
 }
 
 // ── Follow System ──

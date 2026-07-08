@@ -3,6 +3,7 @@ import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { BarenganPost, BARENGAN_STATUS_OPTIONS } from "@/lib/types";
 import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
+import { ProfileTrustBadges } from "@/components/ProfileBadges";
 import { Users, MessageCircle } from "lucide-react";
 
 interface BarenganCardProps {
@@ -39,9 +40,12 @@ export default function BarenganCard({ post }: BarenganCardProps) {
                             )}
                         </div>
                         <div className="min-w-0">
-                            <p className="font-headline text-sm font-bold text-mamen-white truncate">
-                                {post.profile?.name || "Anonymous"}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-headline text-sm font-bold text-mamen-white truncate">
+                                    {post.profile?.name || "Anonymous"}
+                                </p>
+                                <ProfileTrustBadges profile={post.profile} compact />
+                            </div>
                             <p className="text-xs text-mamen-gray-700">
                                 @{post.profile?.handle || "user"} · {timeAgo}
                             </p>

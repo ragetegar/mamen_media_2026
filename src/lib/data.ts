@@ -16,10 +16,10 @@ import {
     BarenganMember,
     BarenganMemberStatus,
     BarenganChatMessage,
+    BarenganUserRating,
     ProfileSnippet,
     DmConversation,
     DirectMessage,
-    ConcertAttendee,
 } from "./types";
 import { normalizeArticleTag } from "./tags";
 import { createServerSupabase, getBrowserSupabase, supabase } from "./supabase";
@@ -28,6 +28,8 @@ import { getBarenganCapacity } from "./barengan";
 async function getContextSupabase() {
     return typeof window === "undefined" ? await createServerSupabase() : getBrowserSupabase();
 }
+
+const PROFILE_SNIPPET_SELECT = "id, name, handle, avatar, role, is_verified, official_partner_name, official_partner_logo, official_partner_url, barengan_custom_tag, barengan_trust_score";
 
 type RawBarenganPost = Omit<BarenganPost, "concert" | "profile"> & {
     concert?: Concert | null;
@@ -44,6 +46,38 @@ type BarenganMemberPostLookup = {
     | { max_members?: number | null; looking_for?: number | null }[]
     | null;
 };
+
+type ConcertDateRow = {
+    concert?: {
+        end_datetime?: string | null;
+        start_datetime?: string | null;
+    } | null;
+};
+
+type FollowIdRow = {
+    follower_id?: string;
+    following_id?: string;
+};
+
+type ConcertAttendeeIdRow = {
+    user_id: string;
+};
+
+type UserConcertHistoryRow = {
+    concert_id: string;
+    source?: string | null;
+    created_at: string;
+};
+
+type DmConversationRow = {
+    id: string;
+    participant_1: string;
+    participant_2: string;
+    last_message_at?: string;
+    created_at?: string;
+};
+
+type DirectMessageRow = Omit<DirectMessage, "sender">;
 
 // ── ARTICLES ──
 
@@ -831,7 +865,7 @@ export async function getBarenganPosts(filters?: {
     const postIds = posts.map((p) => p.id);
 
     const [profilesResult, approvedResult, pendingResult] = await Promise.all([
-        db.from("profiles").select("id, name, handle, avatar").in("id", userIds),
+        db.from("profiles").select(PROFILE_SNIPPET_SELECT).in("id", userIds),
         db.from("barengan_members").select("barengan_post_id").eq("status", "approved").in("barengan_post_id", postIds),
         db.from("barengan_members").select("barengan_post_id").eq("status", "pending").in("barengan_post_id", postIds),
     ]);
@@ -880,7 +914,7 @@ export async function getBarenganPostById(id: string): Promise<BarenganPost | nu
 
     // Fetch profile and member counts separately
     const [profileResult, approvedResult, pendingResult] = await Promise.all([
-        db.from("profiles").select("id, name, handle, avatar").eq("id", (data as RawBarenganPost).user_id).single(),
+        db.from("profiles").select(PROFILE_SNIPPET_SELECT).eq("id", (data as RawBarenganPost).user_id).single(),
         db.from("barengan_members").select("id", { count: "exact", head: true }).eq("barengan_post_id", id).eq("status", "approved"),
         db.from("barengan_members").select("id", { count: "exact", head: true }).eq("barengan_post_id", id).eq("status", "pending"),
     ]);
@@ -931,7 +965,7 @@ export async function getBarenganMembers(postId: string, status?: BarenganMember
     const userIds = [...new Set(members.map((member) => member.user_id))];
     const { data: profiles } = await db
         .from("profiles")
-        .select("id, name, handle, avatar")
+        .select(PROFILE_SNIPPET_SELECT)
         .in("id", userIds);
 
     const profileMap: Record<string, ProfileSnippet> = {};
@@ -1068,7 +1102,7 @@ export async function getBarenganChatMessages(postId: string, limit: number = 10
     const userIds = [...new Set(messages.map((message) => message.user_id))];
     const { data: profiles } = await db
         .from("profiles")
-        .select("id, name, handle, avatar")
+        .select(PROFILE_SNIPPET_SELECT)
         .in("id", userIds);
 
     const profileMap: Record<string, ProfileSnippet> = {};
@@ -1078,6 +1112,58 @@ export async function getBarenganChatMessages(postId: string, limit: number = 10
         ...message,
         sender: profileMap[message.user_id] || null,
     })) as unknown as BarenganChatMessage[];
+}
+
+export async function getBarenganRatingsForPost(postId: string): Promise<BarenganUserRating[]> {
+    const db = await getContextSupabase();
+    const { data, error } = await db
+        .from("barengan_user_ratings")
+        .select("*")
+        .eq("barengan_post_id", postId);
+
+    if (error || !data) return [];
+    return data as BarenganUserRating[];
+}
+
+export async function rateBarenganUser(input: {
+    barengan_post_id: string;
+    target_user_id: string;
+    rating: 1 | -1;
+}): Promise<{ success: boolean; error?: string; target_score?: number }> {
+    const db = await getContextSupabase();
+    const { data: authData, error: authError } = await db.auth.getUser();
+    const userId = authData.user?.id;
+
+    if (authError || !userId) {
+        return { success: false, error: "You must be logged in to rate a Barengan member" };
+    }
+
+    const { error } = await db
+        .from("barengan_user_ratings")
+        .upsert({
+            barengan_post_id: input.barengan_post_id,
+            rater_id: userId,
+            target_user_id: input.target_user_id,
+            rating: input.rating,
+            updated_at: new Date().toISOString(),
+        }, {
+            onConflict: "barengan_post_id,rater_id,target_user_id",
+        });
+
+    if (error) return { success: false, error: error.message };
+
+    const { data: profile } = await db
+        .from("profiles")
+        .select("barengan_trust_score")
+        .eq("id", input.target_user_id)
+        .maybeSingle();
+
+    return {
+        success: true,
+        target_score: typeof profile?.barengan_trust_score === "number"
+            ? profile.barengan_trust_score
+            : undefined,
+    };
 }
 
 export async function getBarenganCountForConcert(concertId: string): Promise<number> {
@@ -1106,7 +1192,7 @@ export async function getUserConcertAttendedCount(userId: string): Promise<numbe
     if (error || !data) return 0;
 
     const now = new Date();
-    return data.filter((post: any) => {
+    return (data as ConcertDateRow[]).filter((post) => {
         const endDate = post.concert?.end_datetime || post.concert?.start_datetime;
         return endDate && new Date(endDate) < now;
     }).length;
@@ -1152,7 +1238,7 @@ export async function getFollowers(userId: string, limit = 20, offset = 0): Prom
 
     if (error || !data || data.length === 0) return { profiles: [], total: count || 0 };
 
-    const userIds = data.map((f: any) => f.follower_id);
+    const userIds = (data as FollowIdRow[]).map((f) => f.follower_id).filter(Boolean) as string[];
     const { data: profiles } = await supabase
         .from("profiles")
         .select("id, name, handle, avatar")
@@ -1176,7 +1262,7 @@ export async function getFollowing(userId: string, limit = 20, offset = 0): Prom
 
     if (error || !data || data.length === 0) return { profiles: [], total: count || 0 };
 
-    const userIds = data.map((f: any) => f.following_id);
+    const userIds = (data as FollowIdRow[]).map((f) => f.following_id).filter(Boolean) as string[];
     const { data: profiles } = await supabase
         .from("profiles")
         .select("id, name, handle, avatar")
@@ -1242,7 +1328,7 @@ export async function getConcertAttendees(concertId: string, limit = 20, offset 
 
     if (error || !data || data.length === 0) return { profiles: [], total: count || 0 };
 
-    const userIds = data.map((row: any) => row.user_id);
+    const userIds = (data as ConcertAttendeeIdRow[]).map((row) => row.user_id);
     const { data: profiles } = await supabase
         .from("profiles")
         .select("id, name, handle, avatar")
@@ -1270,7 +1356,8 @@ export async function getUserConcertHistory(userId: string): Promise<Array<{ con
 
     if (error || !data || data.length === 0) return [];
 
-    const concertIds = data.map((row: any) => row.concert_id);
+    const historyRows = data as UserConcertHistoryRow[];
+    const concertIds = historyRows.map((row) => row.concert_id);
     const { data: concerts } = await supabase
         .from("concerts")
         .select("*")
@@ -1279,11 +1366,11 @@ export async function getUserConcertHistory(userId: string): Promise<Array<{ con
     if (!concerts) return [];
 
     const concertMap: Record<string, Concert> = {};
-    concerts.forEach((c: any) => { concertMap[c.id] = c as Concert; });
+    (concerts as Concert[]).forEach((concert) => { concertMap[concert.id] = concert; });
 
-    return data
-        .filter((row: any) => concertMap[row.concert_id])
-        .map((row: any) => ({
+    return historyRows
+        .filter((row) => concertMap[row.concert_id])
+        .map((row) => ({
             concert: concertMap[row.concert_id],
             source: row.source || "manual",
             created_at: row.created_at,
@@ -1374,7 +1461,7 @@ export async function getConversations(userId: string): Promise<DmConversation[]
     if (error || !conversations) return [];
 
     const enriched = await Promise.all(
-        conversations.map(async (conv: any) => {
+        (conversations as DmConversationRow[]).map(async (conv) => {
             const otherUserId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1;
 
             const [profileResult, lastMsgResult, unreadResult] = await Promise.all([
@@ -1420,17 +1507,18 @@ export async function getConversationMessages(conversationId: string, limit = 50
 
     if (error || !data) return [];
 
-    const senderIds = [...new Set(data.map((m: any) => m.sender_id))];
+    const messages = data as DirectMessageRow[];
+    const senderIds = [...new Set(messages.map((message) => message.sender_id))];
     const { data: profiles } = await supabase
         .from("profiles")
         .select("id, name, handle, avatar")
         .in("id", senderIds);
 
-    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p as ProfileSnippet]));
+    const profileMap = new Map((profiles || []).map((profile) => [profile.id, profile as ProfileSnippet]));
 
-    return data.map((m: any) => ({
-        ...m,
-        sender: profileMap.get(m.sender_id),
+    return messages.map((message) => ({
+        ...message,
+        sender: profileMap.get(message.sender_id),
     })) as DirectMessage[];
 }
 
@@ -1464,7 +1552,7 @@ export async function getUnreadMessageCount(userId: string): Promise<number> {
 
     if (!conversations || conversations.length === 0) return 0;
 
-    const conversationIds = conversations.map((c: any) => c.id);
+    const conversationIds = (conversations as { id: string }[]).map((conversation) => conversation.id);
 
     const { count, error } = await supabase
         .from("direct_messages")

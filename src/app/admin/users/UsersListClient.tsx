@@ -49,7 +49,7 @@ export default function UsersListClient() {
 
     const handleBadgeChange = async (
         target: AuthUser,
-        updates: Partial<Pick<AuthUser, "is_verified" | "official_partner_name" | "official_partner_logo" | "official_partner_url">>,
+        updates: Partial<Pick<AuthUser, "is_verified" | "official_partner_name" | "official_partner_logo" | "official_partner_url" | "barengan_custom_tag">>,
     ) => {
         setError("");
         setSavingId(target.id);
@@ -59,6 +59,7 @@ export default function UsersListClient() {
                 official_partner_name: updates.official_partner_name ?? target.official_partner_name ?? "",
                 official_partner_logo: updates.official_partner_logo ?? target.official_partner_logo ?? "",
                 official_partner_url: updates.official_partner_url ?? target.official_partner_url ?? "",
+                barengan_custom_tag: updates.barengan_custom_tag ?? target.barengan_custom_tag ?? "",
             });
             await fetchUsers();
         } catch (err) {
@@ -172,6 +173,14 @@ export default function UsersListClient() {
                                                 className="bg-mamen-gray-900 border border-mamen-gray-700 text-mamen-white px-2 py-1 text-xs outline-none focus:border-mamen-purple"
                                             />
                                         </div>
+                                        <input
+                                            value={u.barengan_custom_tag || ""}
+                                            onChange={(e) => setUsersList((prev) => prev.map((item) => item.id === u.id ? { ...item, barengan_custom_tag: e.target.value.slice(0, 24) } : item))}
+                                            onBlur={(e) => handleBadgeChange(u, { barengan_custom_tag: e.target.value })}
+                                            placeholder="Barengan custom tag (max 24)"
+                                            maxLength={24}
+                                            className="w-full bg-mamen-gray-900 border border-mamen-gray-700 text-mamen-white px-2 py-1 text-xs outline-none focus:border-mamen-purple"
+                                        />
                                     </div>
                                 </td>
                                 <td className="px-4 py-3 text-right">
