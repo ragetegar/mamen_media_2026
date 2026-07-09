@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "./supabase";
+import { ensureConcertProofNotifications } from "@/app/notifications/actions";
 
 export interface AuthUser {
     id: string;
@@ -62,6 +63,17 @@ type ProfileRow = {
 
 function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : "Something went wrong";
+}
+
+function ensureProofNotificationsOnce(userId: string) {
+    const key = `mamen:proof-notifications:${userId}`;
+    if (typeof window === "undefined" || sessionStorage.getItem(key)) return;
+
+    sessionStorage.setItem(key, "1");
+    ensureConcertProofNotifications().catch((error) => {
+        console.error("Error creating proof notifications:", error);
+        sessionStorage.removeItem(key);
+    });
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -157,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                 avatar: metadata.avatar_url || metadata.picture || "",
                             }
                     );
+                    ensureProofNotificationsOnce(authUser.id);
                 }
             } catch (err) {
                 console.error("Unexpected error fetching profile:", err);

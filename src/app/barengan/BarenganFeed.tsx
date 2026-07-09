@@ -6,8 +6,9 @@ import BarenganCard from "@/components/BarenganCard";
 import { getBarenganPosts } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { BarenganPost } from "@/lib/types";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, X } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { deleteBarenganPost } from "@/app/admin/actions";
 
 interface BarenganFeedProps {
     initialPosts: BarenganPost[];
@@ -20,6 +21,8 @@ export default function BarenganFeed({ initialPosts, concertSlug }: BarenganFeed
     const [sort, setSort] = useState<"latest" | "concert_date">("latest");
     const [loading, setLoading] = useState(false);
     const [hasChanged, setHasChanged] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState("");
 
     useEffect(() => {
         if (!hasChanged) return;
@@ -44,6 +47,21 @@ export default function BarenganFeed({ initialPosts, concertSlug }: BarenganFeed
         fetchPosts();
         return () => { isMounted = false; };
     }, [sort, hasChanged, concertSlug]);
+
+    const handleDeletePost = async (post: BarenganPost) => {
+        if (!confirm("Are you sure you want to delete this Barengan post?")) return;
+
+        setDeletingId(post.id);
+        setDeleteError("");
+        try {
+            await deleteBarenganPost(post.id);
+            setPosts((current) => current.filter((item) => item.id !== post.id));
+        } catch (error) {
+            setDeleteError(error instanceof Error ? error.message : "Failed to delete Barengan post");
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     return (
         <>
@@ -137,8 +155,27 @@ export default function BarenganFeed({ initialPosts, concertSlug }: BarenganFeed
                         </div>
                     ) : posts.length > 0 ? (
                         <div className="space-y-4">
+                            {deleteError && (
+                                <div className="p-4 bg-red-900/30 border-2 border-red-500 text-red-300 text-sm">
+                                    {deleteError}
+                                </div>
+                            )}
                             {posts.map((post) => (
-                                <BarenganCard key={post.id} post={post} />
+                                <div key={post.id} className="relative">
+                                    <BarenganCard post={post} />
+                                    {user?.role === "admin" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeletePost(post)}
+                                            disabled={deletingId === post.id}
+                                            className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center border-2 border-red-500 bg-mamen-black text-red-300 shadow-hard-sm transition-colors hover:bg-red-500 hover:text-white disabled:opacity-50"
+                                            title="Delete Barengan post"
+                                            aria-label="Delete Barengan post"
+                                        >
+                                            <X size={16} strokeWidth={3} />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     ) : (

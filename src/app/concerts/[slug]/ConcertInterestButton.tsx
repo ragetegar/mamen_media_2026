@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Heart } from "lucide-react";
+import { Check, CalendarPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getBrowserSupabase } from "@/lib/supabase";
 import Button from "@/components/ui/Button";
@@ -85,12 +85,12 @@ export default function ConcertInterestButton({ concertId }: { concertId: string
                 {isInterested ? (
                     <>
                         <Check size={18} className="mr-2" />
-                        Interested
+                        Coming
                     </>
                 ) : (
                     <>
-                        <Heart size={18} className="mr-2" />
-                        I&apos;m Interested
+                        <CalendarPlus size={18} className="mr-2" />
+                        I&apos;m Coming
                     </>
                 )}
             </Button>

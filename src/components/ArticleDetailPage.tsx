@@ -3,7 +3,7 @@ import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import AffiliateProductTile from "@/components/AffiliateProductTile";
 import ArticleTile from "@/components/ArticleTile";
-import ConcertTile from "@/components/ConcertTile";
+import ConcertCardMini from "@/components/ConcertCardMini";
 import {
     getArticleBySlug,
     getArticleProducts,
@@ -70,7 +70,7 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
 
     const products = await getArticleProducts(article.id);
     const relatedArticles = await getRelatedArticles(article.slug, 3);
-    const linkedConcerts = await getArticleLinkedConcerts(article);
+    const linkedConcerts = (await getArticleLinkedConcerts(article)).slice(0, 4);
     const articleBody = splitArticleBodyHtml(article.body_html);
 
     return (
@@ -180,9 +180,9 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
                                     <p className="text-sm text-mamen-gray-200 mb-6">
                                         This article talks about these upcoming events - grab your tickets!
                                     </p>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {linkedConcerts.map((concert) => (
-                                            <ConcertTile key={concert.id} concert={concert} />
+                                            <ConcertCardMini key={concert.id} concert={concert} />
                                         ))}
                                     </div>
                                 </div>

@@ -21,11 +21,13 @@ export function useUnreadCount() {
 
     useEffect(() => {
         if (!user) {
-            setUnreadCount(0);
+            Promise.resolve().then(() => setUnreadCount(0));
             return;
         }
 
-        refresh();
+        Promise.resolve().then(refresh);
+
+        window.addEventListener("mamen:unread-refresh", refresh);
 
         // Subscribe to new direct messages
         const channel = supabase
@@ -44,9 +46,34 @@ export function useUnreadCount() {
                     }
                 }
             )
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `user_id=eq.${user.id}`,
+                },
+                () => {
+                    setUnreadCount((prev) => prev + 1);
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `user_id=eq.${user.id}`,
+                },
+                () => {
+                    refresh();
+                }
+            )
             .subscribe();
 
         return () => {
+            window.removeEventListener("mamen:unread-refresh", refresh);
             supabase.removeChannel(channel);
         };
     }, [user, supabase, refresh]);

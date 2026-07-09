@@ -7,25 +7,33 @@ import ChatThread from "@/components/ChatThread";
 import {
     getConversations,
     getConversationMessages,
+    getNotifications,
+    markAllNotificationsAsRead,
+    markNotificationAsRead,
     sendDirectMessage,
     markMessagesAsRead,
 } from "@/lib/data";
-import { DmConversation, DirectMessage, ProfileSnippet } from "@/lib/types";
-import { ArrowLeft, MessageCircle } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { DmConversation, DirectMessage, ProfileSnippet, SystemNotification } from "@/lib/types";
+import { ArrowLeft, Bell, CheckCheck, MessageCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function MessagesClient() {
     const { user } = useAuth();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const preselectedConvId = searchParams.get("conv");
 
+    const [activeTab, setActiveTab] = useState<"notifications" | "messages">(preselectedConvId ? "messages" : "notifications");
     const [conversations, setConversations] = useState<DmConversation[]>([]);
     const [selectedConvId, setSelectedConvId] = useState<string | null>(preselectedConvId);
+    const [notifications, setNotifications] = useState<SystemNotification[]>([]);
     const [messages, setMessages] = useState<DirectMessage[]>([]);
     const [loadingConvs, setLoadingConvs] = useState(true);
-    const [loadingMsgs, setLoadingMsgs] = useState(false);
+    const [loadingNotifications, setLoadingNotifications] = useState(true);
     const [sending, setSending] = useState(false);
     const [mobileShowThread, setMobileShowThread] = useState(!!preselectedConvId);
+
+    const unreadNotificationCount = notifications.filter((notification) => !notification.read_at).length;
 
     // Load conversations
     useEffect(() => {
@@ -51,6 +59,24 @@ export default function MessagesClient() {
         return () => { mounted = false; };
     }, [user, preselectedConvId]);
 
+    // Load MAMEN system notifications
+    useEffect(() => {
+        if (!user) return;
+        let mounted = true;
+
+        const load = async () => {
+            setLoadingNotifications(true);
+            const data = await getNotifications(user.id);
+            if (mounted) {
+                setNotifications(data);
+                setLoadingNotifications(false);
+            }
+        };
+
+        load();
+        return () => { mounted = false; };
+    }, [user]);
+
     // Load messages when conversation is selected
     useEffect(() => {
         if (!selectedConvId || !user) {
@@ -60,11 +86,9 @@ export default function MessagesClient() {
         let mounted = true;
 
         const load = async () => {
-            setLoadingMsgs(true);
             const data = await getConversationMessages(selectedConvId);
             if (mounted) {
                 setMessages(data);
-                setLoadingMsgs(false);
             }
             // Mark as read
             await markMessagesAsRead(selectedConvId, user.id);
@@ -162,8 +186,35 @@ export default function MessagesClient() {
     }, [user, selectedConvId]);
 
     const selectConversation = (convId: string) => {
+        setActiveTab("messages");
         setSelectedConvId(convId);
         setMobileShowThread(true);
+    };
+
+    const handleNotificationClick = async (notification: SystemNotification) => {
+        if (!user) return;
+
+        if (!notification.read_at) {
+            await markNotificationAsRead(notification.id, user.id);
+            setNotifications((prev) =>
+                prev.map((item) => item.id === notification.id
+                    ? { ...item, read_at: new Date().toISOString() }
+                    : item)
+            );
+            window.dispatchEvent(new Event("mamen:unread-refresh"));
+        }
+
+        if (notification.href) {
+            router.push(notification.href);
+        }
+    };
+
+    const handleMarkAllNotificationsRead = async () => {
+        if (!user || unreadNotificationCount === 0) return;
+        await markAllNotificationsAsRead(user.id);
+        const now = new Date().toISOString();
+        setNotifications((prev) => prev.map((notification) => ({ ...notification, read_at: notification.read_at || now })));
+        window.dispatchEvent(new Event("mamen:unread-refresh"));
     };
 
     const selectedConv = conversations.find((c) => c.id === selectedConvId);
@@ -191,15 +242,97 @@ export default function MessagesClient() {
                 {/* Left panel — Conversation list */}
                 <div className={`w-full md:w-[340px] lg:w-[380px] border-r border-mamen-gray-800 flex flex-col shrink-0 ${mobileShowThread ? "hidden md:flex" : "flex"}`}>
                     {/* Header */}
-                    <div className="px-4 py-4 border-b border-mamen-gray-800">
+                    <div className="px-4 py-4 border-b border-mamen-gray-800 space-y-4">
                         <h1 className="font-headline text-lg font-black text-mamen-white tracking-wider uppercase">
-                            Messages
+                            Center
                         </h1>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => { setActiveTab("notifications"); setMobileShowThread(false); }}
+                                className={`flex items-center justify-center gap-2 border-2 px-3 py-2 font-headline text-xs font-bold uppercase tracking-wider ${
+                                    activeTab === "notifications"
+                                        ? "border-mamen-purple bg-mamen-purple text-white"
+                                        : "border-mamen-gray-700 text-mamen-gray-200"
+                                }`}
+                            >
+                                <Bell size={14} />
+                                Notif
+                                {unreadNotificationCount > 0 && (
+                                    <span className="rounded-full bg-red-500 px-1.5 text-[10px] text-white">
+                                        {unreadNotificationCount}
+                                    </span>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("messages")}
+                                className={`flex items-center justify-center gap-2 border-2 px-3 py-2 font-headline text-xs font-bold uppercase tracking-wider ${
+                                    activeTab === "messages"
+                                        ? "border-mamen-purple bg-mamen-purple text-white"
+                                        : "border-mamen-gray-700 text-mamen-gray-200"
+                                }`}
+                            >
+                                <MessageCircle size={14} />
+                                Messages
+                            </button>
+                        </div>
                     </div>
 
                     {/* List */}
                     <div className="flex-1 overflow-y-auto">
-                        {loadingConvs ? (
+                        {activeTab === "notifications" ? (
+                            loadingNotifications ? (
+                                <div className="flex justify-center py-12">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-mamen-purple"></div>
+                                </div>
+                            ) : notifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                    <Bell size={40} className="text-mamen-gray-700 mb-4" />
+                                    <p className="text-mamen-gray-400 text-sm">
+                                        No MAMEN notifications yet.
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    {unreadNotificationCount > 0 && (
+                                        <button
+                                            onClick={handleMarkAllNotificationsRead}
+                                            className="flex w-full items-center justify-center gap-2 border-b border-mamen-gray-800 px-4 py-2 text-xs font-bold uppercase tracking-wider text-mamen-purple hover:bg-mamen-gray-800/30"
+                                        >
+                                            <CheckCheck size={13} />
+                                            Mark all read
+                                        </button>
+                                    )}
+                                    {notifications.map((notification) => (
+                                        <button
+                                            key={notification.id}
+                                            onClick={() => handleNotificationClick(notification)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer text-left ${
+                                                !notification.read_at
+                                                    ? "bg-mamen-purple/10 hover:bg-mamen-purple/20"
+                                                    : "hover:bg-mamen-gray-800/30"
+                                            }`}
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-mamen-purple flex items-center justify-center text-xs font-headline font-black text-white shrink-0">
+                                                M
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="font-headline text-sm font-bold text-mamen-white truncate">
+                                                        {notification.title || "MAMEN"}
+                                                    </span>
+                                                    <span className="text-[10px] text-mamen-gray-500 shrink-0">
+                                                        {formatTime(notification.created_at)}
+                                                    </span>
+                                                </div>
+                                                <p className={`text-xs line-clamp-2 ${notification.read_at ? "text-mamen-gray-500" : "text-mamen-gray-200 font-medium"}`}>
+                                                    {notification.body}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </>
+                            )
+                        ) : loadingConvs ? (
                             <div className="flex justify-center py-12">
                                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-mamen-purple"></div>
                             </div>
@@ -272,7 +405,17 @@ export default function MessagesClient() {
 
                 {/* Right panel — Chat thread */}
                 <div className={`flex-1 flex flex-col ${mobileShowThread ? "flex" : "hidden md:flex"}`}>
-                    {selectedConvId && selectedConv ? (
+                    {activeTab === "notifications" ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+                            <Bell size={48} className="text-mamen-purple mb-4" />
+                            <h2 className="font-headline text-lg font-bold text-mamen-white mb-2">
+                                MAMEN Notifications
+                            </h2>
+                            <p className="text-sm text-mamen-gray-500 max-w-xs">
+                                System reminders from MAMEN show up here. Proof reminders open the related concert page.
+                            </p>
+                        </div>
+                    ) : selectedConvId && selectedConv ? (
                         <>
                             {/* Thread header */}
                             <div className="flex items-center gap-3 px-4 py-3 border-b border-mamen-gray-800">

@@ -20,6 +20,7 @@ import {
     ProfileSnippet,
     DmConversation,
     DirectMessage,
+    SystemNotification,
 } from "./types";
 import { normalizeArticleTag } from "./tags";
 import { createServerSupabase, getBrowserSupabase, supabase } from "./supabase";
@@ -29,7 +30,7 @@ async function getContextSupabase() {
     return typeof window === "undefined" ? await createServerSupabase() : getBrowserSupabase();
 }
 
-const PROFILE_SNIPPET_SELECT = "id, name, handle, avatar, role, is_verified, official_partner_name, official_partner_logo, official_partner_url, barengan_custom_tag, barengan_trust_score";
+const PROFILE_SNIPPET_SELECT = "id, name, handle, avatar, role, is_verified, official_partner_name, official_partner_logo, official_partner_url";
 
 type RawBarenganPost = Omit<BarenganPost, "concert" | "profile"> & {
     concert?: Concert | null;
@@ -1544,13 +1545,56 @@ export async function markMessagesAsRead(conversationId: string, userId: string)
         .is("read_at", null);
 }
 
-export async function getUnreadMessageCount(userId: string): Promise<number> {
-    const { data: conversations } = await supabase
-        .from("dm_conversations")
-        .select("id")
-        .or(`participant_1.eq.${userId},participant_2.eq.${userId}`);
+export async function getNotifications(userId: string): Promise<SystemNotification[]> {
+    const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (!conversations || conversations.length === 0) return 0;
+    if (error || !data) return [];
+    return data as SystemNotification[];
+}
+
+export async function markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
+    await supabase
+        .from("notifications")
+        .update({ read_at: new Date().toISOString() })
+        .eq("id", notificationId)
+        .eq("user_id", userId)
+        .is("read_at", null);
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+    await supabase
+        .from("notifications")
+        .update({ read_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .is("read_at", null);
+}
+
+export async function getUnreadNotificationCount(userId: string): Promise<number> {
+    const { count, error } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("read_at", null);
+
+    if (error) return 0;
+    return count || 0;
+}
+
+export async function getUnreadMessageCount(userId: string): Promise<number> {
+    const [{ data: conversations }, notificationCount] = await Promise.all([
+        supabase
+            .from("dm_conversations")
+            .select("id")
+            .or(`participant_1.eq.${userId},participant_2.eq.${userId}`),
+        getUnreadNotificationCount(userId),
+    ]);
+
+    if (!conversations || conversations.length === 0) return notificationCount;
 
     const conversationIds = (conversations as { id: string }[]).map((conversation) => conversation.id);
 
@@ -1561,6 +1605,6 @@ export async function getUnreadMessageCount(userId: string): Promise<number> {
         .neq("sender_id", userId)
         .is("read_at", null);
 
-    if (error) return 0;
-    return count || 0;
+    if (error) return notificationCount;
+    return (count || 0) + notificationCount;
 }

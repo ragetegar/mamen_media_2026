@@ -329,6 +329,20 @@ export interface DirectMessage {
     sender?: ProfileSnippet;
 }
 
+// ── System Notifications ──
+
+export interface SystemNotification {
+    id: string;
+    user_id: string;
+    type: string;
+    title: string;
+    body: string;
+    href?: string | null;
+    metadata: Record<string, unknown>;
+    read_at: string | null;
+    created_at: string;
+}
+
 // ── Concert Attendees ──
 
 export interface ConcertAttendee {

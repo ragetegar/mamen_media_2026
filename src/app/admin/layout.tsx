@@ -20,7 +20,6 @@ export default function AdminLayout({
     if (user?.role === "admin") {
         navLinks.push({ href: "/admin/brands", label: "Brands", icon: "🏷️" });
         navLinks.push({ href: "/admin/concerts", label: "Concerts", icon: "🎤" });
-        navLinks.push({ href: "/admin/barengan", label: "Barengan", icon: "🤝" });
         navLinks.push({ href: "/admin/users", label: "Users", icon: "👥" });
     }
 
