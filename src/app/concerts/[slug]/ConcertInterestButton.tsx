@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CalendarPlus } from "lucide-react";
+import { Check, CalendarPlus, TicketCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getBrowserSupabase } from "@/lib/supabase";
 import Button from "@/components/ui/Button";
 import LoginModal from "@/components/LoginModal";
 
+type ConcertIntent = "interested" | "coming";
+
 export default function ConcertInterestButton({ concertId }: { concertId: string }) {
     const { user } = useAuth();
     const router = useRouter();
-    const [isInterested, setIsInterested] = useState(false);
+    const [intent, setIntent] = useState<ConcertIntent | null>(null);
     const [loginOpen, setLoginOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -20,25 +22,26 @@ export default function ConcertInterestButton({ concertId }: { concertId: string
 
         async function loadInterest() {
             if (!user) {
-                setIsInterested(false);
+                setIntent(null);
                 return;
             }
 
             const { data } = await getBrowserSupabase()
                 .from("concert_interests")
-                .select("id")
+                .select("id, intent")
                 .eq("user_id", user.id)
                 .eq("concert_id", concertId)
                 .maybeSingle();
 
-            if (mounted) setIsInterested(Boolean(data));
+            const savedIntent = data?.intent === "coming" ? "coming" : data ? "interested" : null;
+            if (mounted) setIntent(savedIntent);
         }
 
-        loadInterest();
+        void loadInterest();
         return () => { mounted = false; };
     }, [concertId, user]);
 
-    const handleToggle = async () => {
+    const handleIntent = async (nextIntent: ConcertIntent) => {
         if (!user) {
             setLoginOpen(true);
             return;
@@ -48,7 +51,7 @@ export default function ConcertInterestButton({ concertId }: { concertId: string
         const supabase = getBrowserSupabase();
 
         try {
-            if (isInterested) {
+            if (intent === nextIntent) {
                 const { error } = await supabase
                     .from("concert_interests")
                     .delete()
@@ -56,14 +59,23 @@ export default function ConcertInterestButton({ concertId }: { concertId: string
                     .eq("concert_id", concertId);
 
                 if (error) throw error;
-                setIsInterested(false);
+                setIntent(null);
+            } else if (intent) {
+                const { error } = await supabase
+                    .from("concert_interests")
+                    .update({ intent: nextIntent })
+                    .eq("user_id", user.id)
+                    .eq("concert_id", concertId);
+
+                if (error) throw error;
+                setIntent(nextIntent);
             } else {
                 const { error } = await supabase
                     .from("concert_interests")
-                    .insert({ user_id: user.id, concert_id: concertId });
+                    .insert({ user_id: user.id, concert_id: concertId, intent: nextIntent });
 
                 if (error) throw error;
-                setIsInterested(true);
+                setIntent(nextIntent);
             }
 
             router.refresh();
@@ -76,24 +88,45 @@ export default function ConcertInterestButton({ concertId }: { concertId: string
 
     return (
         <>
-            <Button
-                variant={isInterested ? "magenta" : "secondary"}
-                size="lg"
-                onClick={handleToggle}
-                disabled={loading}
-            >
-                {isInterested ? (
-                    <>
-                        <Check size={18} className="mr-2" />
-                        Coming
-                    </>
-                ) : (
-                    <>
-                        <CalendarPlus size={18} className="mr-2" />
-                        I&apos;m Coming
-                    </>
-                )}
-            </Button>
+            <div className="flex flex-wrap gap-3">
+                <Button
+                    variant={intent === "interested" ? "magenta" : "secondary"}
+                    size="lg"
+                    onClick={() => handleIntent("interested")}
+                    disabled={loading}
+                >
+                    {intent === "interested" ? (
+                        <>
+                            <Check size={18} className="mr-2" />
+                            Interested
+                        </>
+                    ) : (
+                        <>
+                            <CalendarPlus size={18} className="mr-2" />
+                            I&apos;m Interested
+                        </>
+                    )}
+                </Button>
+
+                <Button
+                    variant={intent === "coming" ? "lime" : "primary"}
+                    size="lg"
+                    onClick={() => handleIntent("coming")}
+                    disabled={loading}
+                >
+                    {intent === "coming" ? (
+                        <>
+                            <Check size={18} className="mr-2" />
+                            Coming
+                        </>
+                    ) : (
+                        <>
+                            <TicketCheck size={18} className="mr-2" />
+                            I&apos;m Coming
+                        </>
+                    )}
+                </Button>
+            </div>
 
             <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
         </>

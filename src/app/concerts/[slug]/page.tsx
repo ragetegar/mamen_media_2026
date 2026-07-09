@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import ArticleTile from "@/components/ArticleTile";
 import ConcertInterestButton from "./ConcertInterestButton";
 import ConcertAttendanceButton from "./ConcertAttendanceButton";
+import ConcertAttendees from "@/components/ConcertAttendees";
 import { getConcertBySlug, getRelatedArticles, getBarenganCountForConcert } from "@/lib/data";
 import { Calendar, MapPin, Users, Ticket, Clock } from "lucide-react";
 
@@ -144,7 +145,7 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                                         <Users size={18} className="text-mamen-purple" />
                                     </div>
                                     <p className="font-bold text-sm text-mamen-magenta">
-                                        {concert.interested_count.toLocaleString()} people coming
+                                        {concert.interested_count.toLocaleString()} people interested
                                     </p>
                                 </div>
                             </div>
@@ -191,6 +192,14 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                     </div>
                 </div>
             </section>
+
+            {isPast && (
+                <section className="bg-mamen-black border-t-2 border-mamen-gray-800">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <ConcertAttendees concertId={concert.id} isPast={isPast} />
+                    </div>
+                </section>
+            )}
 
             {/* Related Articles */}
             {relatedArticles.length > 0 && (

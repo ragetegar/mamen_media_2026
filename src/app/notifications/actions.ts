@@ -40,7 +40,8 @@ export async function ensureConcertProofNotifications() {
     const { data: interests, error: interestError } = await supabase
         .from("concert_interests")
         .select("concert_id, concerts!inner(slug, title, start_datetime, end_datetime)")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("intent", "coming");
 
     if (interestError || !interests) return { created: 0 };
 

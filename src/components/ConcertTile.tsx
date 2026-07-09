@@ -83,7 +83,7 @@ export default function ConcertTile({ concert }: ConcertTileProps) {
                     <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center gap-1 text-xs text-mamen-magenta font-medium">
                             <Users size={12} />
-                            <span>{concert.interested_count.toLocaleString()} coming</span>
+                            <span>{concert.interested_count.toLocaleString()} interested</span>
                         </div>
                         <span className="font-headline text-xs font-bold tracking-widest text-mamen-purple uppercase">
                             View →
