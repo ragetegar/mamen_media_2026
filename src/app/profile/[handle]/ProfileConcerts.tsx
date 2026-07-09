@@ -13,6 +13,13 @@ interface ProfileConcertItem {
     created_at: string;
 }
 
+interface ProfileConcertRow {
+    concert_id: string;
+    intent?: string | null;
+    source?: string | null;
+    created_at: string;
+}
+
 // ── Pagination constants ──
 const PER_PAGE = 8;
 
@@ -38,19 +45,25 @@ export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) 
         async function fetchData() {
             setLoading(true);
             try {
-                // Fetch concert attendance with source info
-                const { data: attendRows, error: attendError } = await supabase
-                    .from("concert_attendees")
-                    .select("concert_id, source, created_at")
-                    .eq("user_id", userId)
-                    .order("created_at", { ascending: false });
+                const { data: concertRows, error: rowsError } = mode === "attending"
+                    ? await supabase
+                        .from("concert_interests")
+                        .select("concert_id, intent, created_at")
+                        .eq("user_id", userId)
+                        .order("created_at", { ascending: false })
+                    : await supabase
+                        .from("concert_attendees")
+                        .select("concert_id, source, created_at")
+                        .eq("user_id", userId)
+                        .order("created_at", { ascending: false });
 
-                if (attendError || !attendRows || attendRows.length === 0) {
+                if (rowsError || !concertRows || concertRows.length === 0) {
                     setConcertItems([]);
                     return;
                 }
 
-                const concertIds = attendRows.map((row) => row.concert_id);
+                const rows = concertRows as ProfileConcertRow[];
+                const concertIds = rows.map((row) => row.concert_id);
                 const { data: concerts, error: concertError } = await supabase
                     .from("concerts")
                     .select("*")
@@ -64,11 +77,11 @@ export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) 
                 const concertMap: Record<string, Concert> = {};
                 concerts.forEach((concert) => { concertMap[concert.id] = concert as Concert; });
 
-                const items: ProfileConcertItem[] = attendRows
+                const items: ProfileConcertItem[] = rows
                     .filter((row) => concertMap[row.concert_id])
                     .map((row) => ({
                         concert: concertMap[row.concert_id],
-                        source: row.source || "manual",
+                        source: mode === "attending" ? row.intent || "interested" : row.source || "manual",
                         created_at: row.created_at,
                     }));
 
@@ -81,7 +94,7 @@ export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) 
         }
 
         fetchData();
-    }, [userId]);
+    }, [userId, mode]);
 
     if (loading) {
         return (
@@ -113,7 +126,7 @@ export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) 
                 <EmptyIcon className="mx-auto text-mamen-gray-700 mb-3" size={32} />
                 <p className="text-mamen-gray-700 font-headline text-base font-bold">
                     {mode === "attending"
-                        ? "No upcoming attending concerts yet."
+                        ? "No interested events yet."
                         : "No concert history yet."}
                 </p>
             </div>
@@ -158,6 +171,15 @@ export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) 
                             <h4 className="font-headline text-sm font-bold text-mamen-white group-hover:text-mamen-purple transition-colors line-clamp-2 leading-tight">
                                 {item.concert.title}
                             </h4>
+                            {!isHistory && (
+                                <span className={`mt-1 inline-flex w-fit border px-2 py-0.5 font-headline text-[10px] font-bold uppercase tracking-wider ${
+                                    item.source === "coming"
+                                        ? "border-mamen-lime text-mamen-lime"
+                                        : "border-mamen-magenta text-mamen-magenta"
+                                }`}>
+                                    {item.source === "coming" ? "Coming" : "Interested"}
+                                </span>
+                            )}
                             <div className="mt-1.5 space-y-0.5">
                                 <div className="flex items-center gap-1.5 text-xs text-mamen-gray-400">
                                     <Calendar size={12} className="shrink-0" />

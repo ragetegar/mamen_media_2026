@@ -440,7 +440,7 @@ export default function ProfileClient({ handle }: ProfileClientProps) {
                             : "text-mamen-gray-400 hover:text-mamen-gray-200"
                             }`}
                     >
-                        <CalendarDays size={16} /> Attending Concerts
+                        <CalendarDays size={16} /> Interested Events
                         {activeTab === "attending" && (
                             <div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-mamen-magenta" />
                         )}
