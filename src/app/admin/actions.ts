@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerSupabase, createServiceRoleClient } from "@/lib/supabase";
-import { Article, ArticleProduct, Concert, FeaturedBrand, Merchant } from "@/lib/types";
+import { Article, ArticleProduct, BarenganPost, Concert, FeaturedBrand, Merchant, ProfileSnippet } from "@/lib/types";
 import { isValidArticleTaxonomy } from "@/lib/article-taxonomy";
 
 type AdminRole = "admin" | "contributor";
@@ -55,6 +55,8 @@ function assertValidArticleTaxonomy(category: string, subcategory: string) {
         throw new Error("Article category and subcategory do not match the editorial taxonomy");
     }
 }
+
+const PROFILE_SNIPPET_SELECT = "id, name, handle, avatar, role, is_verified, official_partner_name, official_partner_logo, official_partner_url, barengan_custom_tag, barengan_trust_score";
 
 async function resolveBrandId(
     supabase: ReturnType<typeof createServiceRoleClient>,
@@ -337,6 +339,76 @@ export async function deleteArticle(id: string) {
     if (error) {
         console.error("Error deleting article:", error);
         throw new Error("Failed to delete article");
+    }
+}
+
+export async function getAdminBarenganPosts() {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") {
+        throw new Error("Only admins can manage Barengan posts");
+    }
+
+    const { data, error } = await supabase
+        .from("barengan_posts")
+        .select("*, concert:concerts(*)")
+        .order("created_at", { ascending: false });
+
+    if (error) throw new Error(`Failed to load Barengan posts: ${error.message}`);
+
+    const posts = (data || []) as BarenganPost[];
+    if (posts.length === 0) return [];
+
+    const postIds = posts.map((post) => post.id);
+    const userIds = [...new Set(posts.map((post) => post.user_id))];
+
+    const [profilesResult, approvedResult, pendingResult] = await Promise.all([
+        supabase.from("profiles").select(PROFILE_SNIPPET_SELECT).in("id", userIds),
+        supabase.from("barengan_members").select("barengan_post_id").eq("status", "approved").in("barengan_post_id", postIds),
+        supabase.from("barengan_members").select("barengan_post_id").eq("status", "pending").in("barengan_post_id", postIds),
+    ]);
+
+    if (profilesResult.error) throw new Error(`Failed to load Barengan creators: ${profilesResult.error.message}`);
+    if (approvedResult.error) throw new Error(`Failed to load approved Barengan members: ${approvedResult.error.message}`);
+    if (pendingResult.error) throw new Error(`Failed to load pending Barengan members: ${pendingResult.error.message}`);
+
+    const profileMap: Record<string, ProfileSnippet> = {};
+    profilesResult.data?.forEach((creator) => {
+        profileMap[creator.id] = creator as ProfileSnippet;
+    });
+
+    const approvedCountMap: Record<string, number> = {};
+    approvedResult.data?.forEach((member) => {
+        approvedCountMap[member.barengan_post_id] = (approvedCountMap[member.barengan_post_id] || 0) + 1;
+    });
+
+    const pendingCountMap: Record<string, number> = {};
+    pendingResult.data?.forEach((member) => {
+        pendingCountMap[member.barengan_post_id] = (pendingCountMap[member.barengan_post_id] || 0) + 1;
+    });
+
+    return posts.map((post) => ({
+        ...post,
+        profile: profileMap[post.user_id] || undefined,
+        approved_count: approvedCountMap[post.id] || 0,
+        member_count: (approvedCountMap[post.id] || 0) + (pendingCountMap[post.id] || 0),
+        response_count: approvedCountMap[post.id] || 0,
+    }));
+}
+
+export async function deleteBarenganPost(id: string) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") {
+        throw new Error("Only admins can delete Barengan posts");
+    }
+
+    const { error } = await supabase
+        .from("barengan_posts")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        console.error("Error deleting Barengan post:", error);
+        throw new Error("Failed to delete Barengan post");
     }
 }
 
