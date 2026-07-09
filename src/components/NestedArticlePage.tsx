@@ -3,6 +3,8 @@ import { getArticleBySlug } from "@/lib/data";
 import { isValidArticleTaxonomy } from "@/lib/article-taxonomy";
 import { ArticleCategory } from "@/lib/types";
 import { Metadata } from "next";
+import { absoluteUrl } from "@/lib/site";
+import { getArticleHref } from "@/lib/article-taxonomy";
 
 interface NestedArticlePageProps {
     category: ArticleCategory;
@@ -25,11 +27,24 @@ export async function getNestedArticleMetadata({
     return {
         title: article.seo_title || article.title,
         description: article.seo_description || article.excerpt,
+        alternates: {
+            canonical: absoluteUrl(getArticleHref(article)),
+        },
         openGraph: {
             title: article.seo_title || article.title,
             description: article.seo_description || article.excerpt,
-            images: [article.cover_image],
+            url: absoluteUrl(getArticleHref(article)),
+            images: [absoluteUrl(article.cover_image)],
             type: "article",
+            publishedTime: article.published_at,
+            modifiedTime: article.updated_at,
+            authors: [article.author],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: article.seo_title || article.title,
+            description: article.seo_description || article.excerpt,
+            images: [absoluteUrl(article.cover_image)],
         },
     };
 }

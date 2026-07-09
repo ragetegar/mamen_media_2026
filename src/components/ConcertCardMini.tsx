@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Concert, ConcertType } from "@/lib/types";
 import { Calendar, MapPin } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 interface ConcertCardMiniProps {
     concert: Concert;
@@ -58,7 +59,7 @@ export default function ConcertCardMini({ concert }: ConcertCardMiniProps) {
                         <div className="flex items-center gap-1 text-[10px] text-mamen-gray-700">
                             <Calendar size={10} className="shrink-0" />
                             <span>
-                                {eventDate.toLocaleDateString("en-US", {
+                                {formatDate(eventDate, {
                                     month: "short",
                                     day: "numeric",
                                     year: "numeric",

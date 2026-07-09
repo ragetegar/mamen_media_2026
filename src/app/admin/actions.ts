@@ -1,35 +1,9 @@
 "use server";
 
-import { createServerSupabase, createServiceRoleClient } from "@/lib/supabase";
+import { createServiceRoleClient } from "@/lib/supabase";
 import { Article, ArticleProduct, Concert, FeaturedBrand, Merchant } from "@/lib/types";
 import { isValidArticleTaxonomy } from "@/lib/article-taxonomy";
-
-type AdminRole = "admin" | "contributor";
-
-async function getAdminContext() {
-    const userSupabase = await createServerSupabase();
-    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
-
-    if (userError || !user) {
-        throw new Error("You must be logged in to access admin operations");
-    }
-
-    const { data: profile, error: profileError } = await userSupabase
-        .from("profiles")
-        .select("id, name, role")
-        .eq("id", user.id)
-        .single();
-
-    if (profileError || !profile || !["admin", "contributor"].includes(profile.role)) {
-        throw new Error("You do not have permission to access admin operations");
-    }
-
-    return {
-        supabase: createServiceRoleClient(),
-        user,
-        profile: profile as { id: string; name: string | null; role: AdminRole },
-    };
-}
+import { getAdminContext, type AdminRole } from "@/lib/admin-auth";
 
 async function assertCanWriteArticle(articleId: string, role: AdminRole, userId: string) {
     if (role === "admin") return;

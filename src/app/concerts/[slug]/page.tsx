@@ -3,13 +3,17 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Badge from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
 import ArticleTile from "@/components/ArticleTile";
 import ConcertInterestButton from "./ConcertInterestButton";
 import ConcertAttendanceButton from "./ConcertAttendanceButton";
 import ConcertAttendees from "@/components/ConcertAttendees";
 import { getConcertBySlug, getRelatedArticles, getBarenganCountForConcert } from "@/lib/data";
-import { Calendar, MapPin, Users, Ticket, Clock } from "lucide-react";
+import { Calendar, MapPin, Users, Clock } from "lucide-react";
+import { absoluteUrl } from "@/lib/site";
+import { formatDate, formatTime } from "@/lib/format";
+import ShareButtons from "@/components/ShareButtons";
+import StructuredData from "@/components/StructuredData";
+import TicketLinkButton from "@/components/TicketLinkButton";
 
 interface PageProps {
     params: Promise<{ slug: string }>;
@@ -23,11 +27,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
         title: concert.title,
         description: concert.description || `${concert.title} at ${concert.venue}, ${concert.city}`,
+        alternates: {
+            canonical: absoluteUrl(`/concerts/${concert.slug}`),
+        },
         openGraph: {
             title: concert.title,
             description: concert.description || `${concert.title} at ${concert.venue}, ${concert.city}`,
-            images: [concert.poster_image],
+            url: absoluteUrl(`/concerts/${concert.slug}`),
+            images: [absoluteUrl(concert.poster_image)],
             type: "website",
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: concert.title,
+            description: concert.description || `${concert.title} at ${concert.venue}, ${concert.city}`,
+            images: [absoluteUrl(concert.poster_image)],
         },
     };
 }
@@ -42,9 +56,39 @@ export default async function ConcertDetailPage({ params }: PageProps) {
     const isPast = eventEndDate < new Date();
     const relatedArticles = await getRelatedArticles("", 3, concert.id);
     const barenganCount = await getBarenganCountForConcert(concert.id);
+    const concertUrl = absoluteUrl(`/concerts/${concert.slug}`);
+    const concertJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "MusicEvent",
+        name: concert.title,
+        description: concert.description || `${concert.title} at ${concert.venue}, ${concert.city}`,
+        image: [absoluteUrl(concert.poster_image)],
+        startDate: concert.start_datetime,
+        endDate: concert.end_datetime || concert.start_datetime,
+        eventStatus: "https://schema.org/EventScheduled",
+        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+        location: {
+            "@type": "Place",
+            name: concert.venue,
+            address: {
+                "@type": "PostalAddress",
+                addressLocality: concert.city,
+                addressCountry: "ID",
+            },
+        },
+        url: concertUrl,
+        offers: concert.ticket_url
+            ? {
+                "@type": "Offer",
+                url: concert.ticket_url,
+                availability: isPast ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+            }
+            : undefined,
+    };
 
     return (
         <>
+            <StructuredData data={concertJsonLd} />
             {/* Concert Hero */}
             <section className="bg-mamen-black">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
@@ -98,7 +142,7 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                                     </div>
                                     <div>
                                         <p className="font-bold text-sm">
-                                            {eventDate.toLocaleDateString("en-US", {
+                                            {formatDate(eventDate, {
                                                 weekday: "long",
                                                 month: "long",
                                                 day: "numeric",
@@ -107,7 +151,7 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                                         </p>
                                         {concert.end_datetime && (
                                             <p className="text-xs text-mamen-gray-200">
-                                                {new Date(concert.end_datetime).toLocaleDateString("en-US", {
+                                                {formatDate(concert.end_datetime, {
                                                     month: "long",
                                                     day: "numeric",
                                                 })}{" "}
@@ -122,11 +166,7 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                                         <Clock size={18} className="text-mamen-magenta" />
                                     </div>
                                     <p className="font-bold text-sm">
-                                        {eventDate.toLocaleTimeString("en-US", {
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                            hour12: true,
-                                        })}
+                                        {formatTime(eventDate)}
                                     </p>
                                 </div>
 
@@ -153,12 +193,11 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                             {/* CTAs */}
                             <div className="mt-8 flex flex-wrap gap-4">
                                 {concert.ticket_url && !isPast && (
-                                    <a href={concert.ticket_url} target="_blank" rel="noopener noreferrer">
-                                        <Button variant="lime" size="lg">
-                                            <Ticket size={18} className="mr-2" />
-                                            Get Tickets
-                                        </Button>
-                                    </a>
+                                    <TicketLinkButton
+                                        href={concert.ticket_url}
+                                        concertId={concert.id}
+                                        concertTitle={concert.title}
+                                    />
                                 )}
                                 {!isPast ? (
                                     <ConcertInterestButton concertId={concert.id} />
@@ -187,6 +226,10 @@ export default async function ConcertDetailPage({ params }: PageProps) {
                                         Barengan →
                                     </Link>
                                 </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <ShareButtons title={concert.title} url={concertUrl} itemType="concert" />
                             </div>
                         </div>
                     </div>

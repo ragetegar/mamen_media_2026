@@ -10,13 +10,17 @@ import {
     getRelatedArticles,
     getArticleLinkedConcerts,
 } from "@/lib/data";
-import { Copy, Share2 } from "lucide-react";
 import ArticlePageClient from "@/app/media/[slug]/ArticlePageClient";
 import { ArticleCategory } from "@/lib/types";
-import { getArticleCategoryLabel, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
+import { getArticleCategoryLabel, getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 import Link from "next/link";
 import { getTagHref } from "@/lib/tags";
 import { GoogleAdUnit } from "@/components/GoogleAds";
+import { formatDate } from "@/lib/format";
+import { absoluteUrl } from "@/lib/site";
+import { sanitizeArticleHtml } from "@/lib/html";
+import ShareButtons from "@/components/ShareButtons";
+import StructuredData from "@/components/StructuredData";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple"> = {
     "public-voice": "lime",
@@ -71,10 +75,31 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
     const products = await getArticleProducts(article.id);
     const relatedArticles = await getRelatedArticles(article.slug, 3);
     const linkedConcerts = (await getArticleLinkedConcerts(article)).slice(0, 4);
-    const articleBody = splitArticleBodyHtml(article.body_html);
+    const articleBody = splitArticleBodyHtml(sanitizeArticleHtml(article.body_html));
+    const articleUrl = absoluteUrl(getArticleHref(article));
+    const articleJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: article.title,
+        description: article.seo_description || article.excerpt,
+        image: [absoluteUrl(article.cover_image)],
+        datePublished: article.published_at,
+        dateModified: article.updated_at,
+        author: {
+            "@type": "Person",
+            name: article.author,
+        },
+        publisher: {
+            "@type": "Organization",
+            name: "MAMEN",
+            url: absoluteUrl("/"),
+        },
+        mainEntityOfPage: articleUrl,
+    };
 
     return (
         <>
+            <StructuredData data={articleJsonLd} />
             {/* Hero Cover */}
             <section className="relative">
                 <div className="relative h-[40vh] md:h-[50vh] overflow-hidden">
@@ -106,11 +131,11 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
                             <span className="font-medium">{article.author}</span>
                             <span>•</span>
                             <time>
-                                {article.published_at ? new Date(article.published_at).toLocaleDateString("en-US", {
-                                    month: "long",
+                                {article.published_at ? formatDate(article.published_at, {
                                     day: "numeric",
+                                    month: "long",
                                     year: "numeric",
-                                }) : 'Draft'}
+                                }) : "Draft"}
                             </time>
                         </div>
 
@@ -193,33 +218,7 @@ export default async function ArticleDetailPage({ slug, expectedCategory, expect
                                 <h3 className="font-headline text-sm font-bold tracking-widest text-mamen-gray-200 uppercase mb-4">
                                     Share This Article
                                 </h3>
-                                <div className="flex gap-3 flex-wrap">
-                                    <a
-                                        href={`https://wa.me/?text=${encodeURIComponent(article.title)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 bg-[#25D366] text-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-black shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
-                                    >
-                                        WhatsApp
-                                    </a>
-                                    <a
-                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 bg-mamen-black text-mamen-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-white shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all"
-                                    >
-                                        <span className="flex items-center gap-1.5">
-                                            <Share2 size={12} /> Post on X
-                                        </span>
-                                    </a>
-                                    <button
-                                        className="px-4 py-2 bg-mamen-gray-800 text-mamen-white font-headline text-xs font-bold uppercase tracking-wider border-2 border-mamen-gray-700 shadow-hard-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all cursor-pointer"
-                                    >
-                                        <span className="flex items-center gap-1.5">
-                                            <Copy size={12} /> Copy Link
-                                        </span>
-                                    </button>
-                                </div>
+                                <ShareButtons title={article.title} url={articleUrl} itemType="article" />
                             </div>
 
                             {/* Comments */}

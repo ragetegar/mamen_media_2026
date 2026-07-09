@@ -5,6 +5,7 @@ import { BarenganPost, BARENGAN_STATUS_OPTIONS } from "@/lib/types";
 import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
 import { ProfileTrustBadges } from "@/components/ProfileBadges";
 import { Users, MessageCircle } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 interface BarenganCardProps {
     post: BarenganPost;
@@ -84,7 +85,7 @@ export default function BarenganCard({ post }: BarenganCardProps) {
                                     {post.concert.title}
                                 </p>
                                 <p className="text-xs text-mamen-gray-700 mt-0.5">
-                                    {new Date(post.concert.start_datetime).toLocaleDateString("en-US", {
+                                    {formatDate(post.concert.start_datetime, {
                                         month: "short",
                                         day: "numeric",
                                         year: "numeric",
@@ -124,5 +125,5 @@ function getTimeAgo(date: Date): string {
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return formatDate(date, { month: "short", day: "numeric" });
 }

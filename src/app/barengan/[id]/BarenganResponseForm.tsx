@@ -9,6 +9,7 @@ import { createBarenganResponse, getBarenganResponses } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { Send } from "lucide-react";
 import LoginModal from "@/components/LoginModal";
+import { formatDate } from "@/lib/format";
 
 interface BarenganResponseFormProps {
     postId: string;
@@ -108,7 +109,7 @@ export default function BarenganResponseForm({ postId, initialResponses }: Baren
                                             {response.profile?.name || "Anonymous"}
                                         </Link>
                                         <p className="text-xs text-mamen-gray-700">
-                                            {new Date(response.created_at).toLocaleDateString("en-US", {
+                                            {formatDate(response.created_at, {
                                                 month: "short", day: "numeric"
                                             })}
                                         </p>

@@ -11,6 +11,7 @@ import PWARegistration from "@/components/PWARegistration";
 import { GoogleAdsenseScript } from "@/components/GoogleAds";
 import type { Viewport } from "next";
 import Script from "next/script";
+import { getSiteUrl } from "@/lib/site";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,6 +31,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "MAMEN — Indonesian Music & Concert Culture",
     template: "%s | MAMEN",
@@ -49,11 +51,18 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
+    url: "/",
     locale: "id_ID",
     siteName: "MAMEN",
     title: "MAMEN — Indonesian Music & Concert Culture",
     description:
       "Your go-to platform for Indonesian music, concert culture, and everything that moves the crowd. JKT48 gaming and others too",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MAMEN — Indonesian Music & Concert Culture",
+    description:
+      "Your go-to platform for Indonesian music, concert culture, and everything that moves the crowd.",
   },
   icons: {
     icon: "/icon-192.png",
@@ -61,6 +70,8 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
 };
+
+const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
 export default function RootLayout({
   children,
@@ -70,19 +81,22 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} ${oswald.variable}`} suppressHydrationWarning>
       <body className="bg-mamen-black text-mamen-white font-body antialiased transition-colors duration-300">
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-E0BS1D856V"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-E0BS1D856V');
-          `}
-        </Script>
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}');
+              `}
+            </Script>
+          </>
+        )}
         <GoogleAdsenseScript />
         <PWARegistration />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

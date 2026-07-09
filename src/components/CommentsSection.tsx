@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { MessageCircle, LogIn, Send, Trash2, Reply, X } from "lucide-react";
+import { Flag, MessageCircle, LogIn, Send, Trash2, Reply, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { RoleBadge, VerifiedBadge } from "@/components/ProfileBadges";
+import { formatDate } from "@/lib/format";
 
 interface Comment {
     id: string;
@@ -29,8 +30,8 @@ interface CommentsSectionProps {
     requireAuth?: boolean; // If true, non-logged-in users see auth prompt instead of comments
 }
 
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("en-US", {
+function formatCommentDate(iso: string) {
+    return formatDate(iso, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -100,12 +101,14 @@ function CommentCard({
     comment,
     user,
     onDelete,
+    onReport,
     onReply,
     isReply = false,
 }: {
     comment: Comment;
     user: ReturnType<typeof useAuth>["user"];
     onDelete: (id: string) => void;
+    onReport: (id: string) => void;
     onReply: (comment: Comment) => void;
     isReply?: boolean;
 }) {
@@ -129,12 +132,21 @@ function CommentCard({
                             <RoleBadge role={comment.user_role} compact />
                         </div>
                         <p className="text-xs text-mamen-gray-700">
-                            {formatDate(comment.created_at)}
+                            {formatCommentDate(comment.created_at)}
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-1">
+                    {user && user.id !== comment.user_id && (
+                        <button
+                            onClick={() => onReport(comment.id)}
+                            className="p-1.5 text-mamen-gray-700 hover:text-mamen-magenta transition-colors cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            title="Report comment"
+                        >
+                            <Flag size={14} />
+                        </button>
+                    )}
                     {/* Reply button */}
                     {user && !isReply && (
                         <button
@@ -292,6 +304,26 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
         }
     };
 
+    const handleReport = async (id: string) => {
+        if (!user) return;
+
+        const { error } = await supabase
+            .from("reports")
+            .upsert(
+                {
+                    reporter_id: user.id,
+                    target_type: "comment",
+                    target_id: id,
+                    reason: "user_report",
+                },
+                { onConflict: "reporter_id,target_type,target_id" },
+            );
+
+        if (error) {
+            console.error("Error reporting comment:", error.message);
+        }
+    };
+
     // Separate top-level comments and replies for rendering
     const topLevelComments = comments.filter((c) => !c.parent_id);
     const repliesMap = new Map<string, Comment[]>();
@@ -357,6 +389,7 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
                         placeholder="Share your thoughts..."
                         className="w-full px-4 py-3 bg-mamen-gray-800 border-2 border-mamen-gray-700 text-mamen-white text-sm focus:outline-none focus:border-mamen-purple transition-colors resize-y placeholder:text-mamen-gray-700"
                         rows={3}
+                        maxLength={2000}
                         required
                     />
                     <div className="flex justify-end mt-2">
@@ -411,6 +444,7 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
                                     comment={comment}
                                     user={user}
                                     onDelete={handleDelete}
+                                    onReport={handleReport}
                                     onReply={(c) => setReplyingTo(c)}
                                 />
 
@@ -423,6 +457,7 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
                                                 comment={reply}
                                                 user={user}
                                                 onDelete={handleDelete}
+                                                onReport={handleReport}
                                                 onReply={() => { }}
                                                 isReply
                                             />
@@ -454,6 +489,7 @@ export default function CommentsSection({ articleId, barenganPostId, onLoginRequ
                                             placeholder="Write a reply..."
                                             className="w-full px-3 py-2 bg-mamen-gray-800 border-2 border-mamen-gray-700 text-mamen-white text-sm focus:outline-none focus:border-mamen-purple transition-colors resize-y placeholder:text-mamen-gray-700"
                                             rows={2}
+                                            maxLength={2000}
                                             required
                                         />
                                         <div className="flex justify-end mt-1.5">

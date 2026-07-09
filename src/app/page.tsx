@@ -40,39 +40,42 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. Latest Drops — Pop Culture Articles Grid */}
-      <section className="bg-mamen-black py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="LATEST"
-            highlight="DROPS"
-            seeAllHref="/music/news"
-            seeAllLabel="See All News →"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestArticles.map((article) => (
-              <ArticleTile key={article.id} article={article} />
-            ))}
+      {latestArticles.length >= 3 && (
+        <section className="bg-mamen-black py-16 md:py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <SectionHeader
+              title="LATEST"
+              highlight="DROPS"
+              seeAllHref="/music/news"
+              seeAllLabel="See All News →"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {latestArticles.map((article) => (
+                <ArticleTile key={article.id} article={article} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 5. Fresh Heat — Upcoming Concerts */}
-      <section className="bg-mamen-gray-900 py-16 md:py-20 border-t-4 border-mamen-magenta">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="FRESH"
-            highlight="HEAT"
-            seeAllHref="/concerts"
-            seeAllLabel="See All Concerts →"
-          />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {concerts.map((concert) => (
-              <ConcertTile key={concert.id} concert={concert} />
-            ))}
+      {concerts.length >= 2 && (
+        <section className="bg-mamen-gray-900 py-16 md:py-20 border-t-4 border-mamen-magenta">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <SectionHeader
+              title="FRESH"
+              highlight="HEAT"
+              seeAllHref="/concerts"
+              seeAllLabel="See All Concerts →"
+            />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {concerts.map((concert) => (
+                <ConcertTile key={concert.id} concert={concert} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 6. Podcast — Spotify Embed */}
       <SpotifyPodcast showId="3mZaixB9zIUiQwbe2Msqit" />

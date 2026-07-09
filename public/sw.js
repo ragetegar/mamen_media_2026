@@ -3,7 +3,6 @@ const OFFLINE_URL = "/offline";
 
 const ASSETS_TO_CACHE = [
   OFFLINE_URL,
-  "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png",
   "/apple-icon.png",

@@ -5,14 +5,13 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import type { CSSProperties } from "react";
 
-const ADSENSE_CLIENT = "ca-pub-5362460877261927";
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 const EXCLUDED_AD_PATHS = [
     "/profile",
     "/barengan",
     "/admin",
     "/messages",
     "/setup-profile",
-    "/superadmin",
     "/auth",
     "/offline",
 ];
@@ -39,7 +38,7 @@ function isAdsExcluded(pathname: string | null) {
 export function GoogleAdsenseScript() {
     const pathname = usePathname();
 
-    if (isAdsExcluded(pathname)) return null;
+    if (!ADSENSE_CLIENT || isAdsExcluded(pathname)) return null;
 
     return (
         <Script
@@ -69,7 +68,7 @@ export function GoogleAdUnit({
     const slot = adSlots[placement];
 
     useEffect(() => {
-        if (!slot || isAdsExcluded(pathname)) return;
+        if (!ADSENSE_CLIENT || !slot || isAdsExcluded(pathname)) return;
 
         try {
             window.adsbygoogle = window.adsbygoogle || [];
@@ -79,7 +78,7 @@ export function GoogleAdUnit({
         }
     }, [pathname, slot]);
 
-    if (!slot || isAdsExcluded(pathname)) return null;
+    if (!ADSENSE_CLIENT || !slot || isAdsExcluded(pathname)) return null;
 
     return (
         <aside

@@ -5,9 +5,10 @@ import Image from "next/image";
 import { Concert } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { Search, X } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 interface ConcertPickerProps {
-    onSelect: (concert: Concert) => void;
+    onSelect: (concert: Concert | null) => void;
     selectedConcert?: Concert | null;
 }
 
@@ -30,7 +31,6 @@ export default function ConcertPicker({ onSelect, selectedConcert }: ConcertPick
 
     useEffect(() => {
         if (query.length < 2) {
-            setResults([]);
             return;
         }
 
@@ -68,7 +68,7 @@ export default function ConcertPicker({ onSelect, selectedConcert }: ConcertPick
                         {selectedConcert.title}
                     </p>
                     <p className="text-xs text-mamen-gray-700">
-                        {new Date(selectedConcert.start_datetime).toLocaleDateString("en-US", {
+                        {formatDate(selectedConcert.start_datetime, {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
@@ -76,7 +76,7 @@ export default function ConcertPicker({ onSelect, selectedConcert }: ConcertPick
                     </p>
                 </div>
                 <button
-                    onClick={() => onSelect(null as any)}
+                    onClick={() => onSelect(null)}
                     className="p-1 text-mamen-gray-700 hover:text-mamen-white cursor-pointer"
                 >
                     <X size={16} />
@@ -92,7 +92,11 @@ export default function ConcertPicker({ onSelect, selectedConcert }: ConcertPick
                 <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                        const nextQuery = e.target.value;
+                        setQuery(nextQuery);
+                        if (nextQuery.length < 2) setResults([]);
+                    }}
                     placeholder="Search for a concert..."
                     className="bg-transparent text-mamen-white text-sm w-full outline-none placeholder:text-mamen-gray-700"
                 />
@@ -127,7 +131,7 @@ export default function ConcertPicker({ onSelect, selectedConcert }: ConcertPick
                                     {concert.title}
                                 </p>
                                 <p className="text-xs text-mamen-gray-700">
-                                    {new Date(concert.start_datetime).toLocaleDateString("en-US", {
+                                    {formatDate(concert.start_datetime, {
                                         month: "short",
                                         day: "numeric",
                                     })} · {concert.city}

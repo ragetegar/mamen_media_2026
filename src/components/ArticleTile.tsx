@@ -3,6 +3,7 @@ import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { Article } from "@/lib/types";
 import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
+import { formatDate } from "@/lib/format";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
     "public-voice": "white",
@@ -46,7 +47,7 @@ export default function ArticleTile({ article }: ArticleTileProps) {
                     </p>
                     <div className="mt-4 flex items-center justify-between">
                         <span className="text-xs text-mamen-gray-700 font-medium">
-                            {article.published_at ? new Date(article.published_at).toLocaleDateString("en-US", {
+                            {article.published_at ? formatDate(article.published_at, {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",

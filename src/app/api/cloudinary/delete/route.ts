@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { requireAdminRole } from "@/lib/admin-auth";
 
 export async function POST(request: NextRequest) {
+    try {
+        await requireAdminRole(["admin", "contributor"]);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unauthorized";
+        return NextResponse.json({ error: message }, { status: message.includes("logged in") ? 401 : 403 });
+    }
+
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;

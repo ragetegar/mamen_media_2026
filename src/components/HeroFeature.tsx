@@ -3,6 +3,7 @@ import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { Article } from "@/lib/types";
 import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
+import { formatDate } from "@/lib/format";
 
 const categoryBadgeVariant: Record<string, "lime" | "magenta" | "purple" | "white"> = {
     "public-voice": "white",
@@ -62,7 +63,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                                         <span className="font-medium">{featured.author}</span>
                                         <span>•</span>
                                         <time>
-                                            {featured.published_at ? new Date(featured.published_at).toLocaleDateString("en-US", {
+                                            {featured.published_at ? formatDate(featured.published_at, {
                                                 month: "short",
                                                 day: "numeric",
                                             }) : "Draft"}
@@ -105,7 +106,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
                                         </h2>
                                         <div className="mt-2 flex items-center gap-2 text-[0.65rem] text-mamen-gray-200">
                                             <time>
-                                                {article.published_at ? new Date(article.published_at).toLocaleDateString("en-US", {
+                                                {article.published_at ? formatDate(article.published_at, {
                                                     month: "short",
                                                     day: "numeric",
                                                 }) : "Draft"}

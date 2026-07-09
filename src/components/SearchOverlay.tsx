@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, X } from "lucide-react";
-import { getArticles } from "@/lib/data";
-import { Article } from "@/lib/types";
+import { Article, Concert } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { getArticleCategoryLabel, getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
+import { formatDate } from "@/lib/format";
 
 interface SearchOverlayProps {
     isOpen: boolean;
@@ -16,29 +16,49 @@ interface SearchOverlayProps {
 export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     const [query, setQuery] = useState("");
     const [articles, setArticles] = useState<Article[]>([]);
+    const [concerts, setConcerts] = useState<Pick<Concert, "id" | "slug" | "title" | "poster_image" | "venue" | "city" | "start_datetime">[]>([]);
+    const [loading, setLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    const results = useMemo(() => {
-        if (!query.trim()) return [];
-
-        const lower = query.toLowerCase();
-        return articles.filter(
-            (a) =>
-                a.title.toLowerCase().includes(lower) ||
-                a.excerpt.toLowerCase().includes(lower) ||
-                a.category.toLowerCase().includes(lower) ||
-                a.subcategory.toLowerCase().includes(lower) ||
-                a.author.toLowerCase().includes(lower) ||
-                (a.tags && a.tags.some((t) => t.toLowerCase().includes(lower)))
-        ).slice(0, 6);
-    }, [articles, query]);
 
     useEffect(() => {
         if (isOpen) {
-            getArticles().then(setArticles).catch(() => setArticles([]));
             setTimeout(() => inputRef.current?.focus(), 50);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || query.trim().length < 2) {
+            setArticles([]);
+            setConcerts([]);
+            setLoading(false);
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = window.setTimeout(async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+                    signal: controller.signal,
+                });
+                const data = await response.json();
+                setArticles(data.articles || []);
+                setConcerts(data.concerts || []);
+            } catch (error) {
+                if (!(error instanceof DOMException && error.name === "AbortError")) {
+                    setArticles([]);
+                    setConcerts([]);
+                }
+            } finally {
+                if (!controller.signal.aborted) setLoading(false);
+            }
+        }, 220);
+
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [isOpen, query]);
 
     const handleClose = useCallback(() => {
         setQuery("");
@@ -97,7 +117,13 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 {/* Results */}
                 {query && (
                     <div className="mt-3 bg-mamen-gray-900 border-4 border-mamen-purple overflow-hidden shadow-hard-purple">
-                        {results.length === 0 ? (
+                        {loading ? (
+                            <div className="px-6 py-10 text-center">
+                                <p className="font-headline text-xl font-bold text-mamen-gray-700">
+                                    Searching...
+                                </p>
+                            </div>
+                        ) : articles.length === 0 && concerts.length === 0 ? (
                             <div className="px-6 py-10 text-center">
                                 <p className="font-headline text-xl font-bold text-mamen-gray-700">
                                     No results for &ldquo;{query}&rdquo;
@@ -108,7 +134,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                             </div>
                         ) : (
                             <ul>
-                                {results.map((article, i) => (
+                                {articles.map((article, i) => (
                                     <li
                                         key={article.id}
                                         className={`border-b border-mamen-gray-800 last:border-b-0 ${i === 0 ? "" : ""}`}
@@ -147,11 +173,47 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                                         </Link>
                                     </li>
                                 ))}
+                                {concerts.map((concert) => (
+                                    <li key={concert.id} className="border-b border-mamen-gray-800 last:border-b-0">
+                                        <Link
+                                            href={`/concerts/${concert.slug}`}
+                                            onClick={handleClose}
+                                            className="flex items-center gap-4 px-5 py-4 hover:bg-mamen-gray-800 transition-colors group"
+                                        >
+                                            <div className="relative w-16 h-12 shrink-0 overflow-hidden">
+                                                <Image
+                                                    src={concert.poster_image}
+                                                    alt={concert.title}
+                                                    fill
+                                                    className="object-cover"
+                                                    sizes="64px"
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-headline text-sm font-bold text-mamen-white group-hover:text-mamen-lime transition-colors line-clamp-1">
+                                                    {concert.title}
+                                                </p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <span className="text-xs text-mamen-purple font-bold uppercase tracking-wider">
+                                                        Concert / {concert.city}
+                                                    </span>
+                                                    <span className="text-mamen-gray-700 text-xs">•</span>
+                                                    <span className="text-xs text-mamen-gray-200">
+                                                        {formatDate(concert.start_datetime, { day: "numeric", month: "short", year: "numeric" })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span className="text-mamen-gray-700 group-hover:text-mamen-lime transition-colors shrink-0">
+                                                →
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
                             </ul>
                         )}
                         <div className="px-5 py-2.5 border-t border-mamen-gray-800 bg-mamen-black/50">
                             <p className="text-xs text-mamen-gray-700 font-headline tracking-wider uppercase">
-                                {results.length} result{results.length !== 1 ? "s" : ""} found
+                                {articles.length + concerts.length} result{articles.length + concerts.length !== 1 ? "s" : ""} found
                             </p>
                         </div>
                     </div>

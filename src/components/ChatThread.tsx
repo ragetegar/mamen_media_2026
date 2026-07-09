@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ProfileSnippet } from "@/lib/types";
 import { ProfileTrustBadges } from "@/components/ProfileBadges";
 import { Send } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 interface ChatMessage {
     id: string;
@@ -152,5 +153,5 @@ function getRelativeTime(date: Date): string {
     if (seconds < 60) return "just now";
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    return formatDate(date, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import { Concert, ConcertType } from "@/lib/types";
 import { Calendar, MapPin, Users } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 interface ConcertTileProps {
     concert: Concert;
@@ -61,7 +62,7 @@ export default function ConcertTile({ concert }: ConcertTileProps) {
                         <div className="flex items-center gap-2 text-xs text-mamen-gray-700">
                             <Calendar size={13} className="shrink-0" />
                             <span>
-                                {eventDate.toLocaleDateString("en-US", {
+                                {formatDate(eventDate, {
                                     weekday: "short",
                                     month: "short",
                                     day: "numeric",

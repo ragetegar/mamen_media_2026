@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 import { getArticlesByTag } from "@/lib/data";
 import { normalizeArticleTag } from "@/lib/tags";
+import { formatDate } from "@/lib/format";
 
 interface TagPageProps {
     params: Promise<{ tag: string }>;
@@ -56,7 +57,7 @@ export default async function TagPage({ params }: TagPageProps) {
                                             <span className="text-mamen-purple">/</span>
                                             <time>
                                                 {article.published_at
-                                                    ? new Date(article.published_at).toLocaleDateString("en-US", {
+                                                    ? formatDate(article.published_at, {
                                                         month: "short",
                                                         day: "numeric",
                                                         year: "numeric",

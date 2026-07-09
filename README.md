@@ -43,13 +43,23 @@ Required production env vars:
 
 - `CRON_SECRET`
 - `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SITE_URL` set to `https://mamen.id`
 
-Recommended for consistent CDN cover images:
+Required for CMS media uploads:
 
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
+
+Required for ads/analytics:
+
+- `NEXT_PUBLIC_GA_ID`
+- `NEXT_PUBLIC_ADSENSE_CLIENT`
+- `NEXT_PUBLIC_ADSENSE_FEED_SLOT`
+- `NEXT_PUBLIC_ADSENSE_ARTICLE_SLOT`
+- `NEXT_PUBLIC_ADSENSE_RAIL_SLOT`
 
 Optional:
 

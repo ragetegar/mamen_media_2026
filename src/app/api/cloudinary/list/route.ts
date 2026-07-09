@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+import { requireAdminRole } from "@/lib/admin-auth";
 
 export async function GET() {
+    try {
+        await requireAdminRole(["admin", "contributor"]);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unauthorized";
+        return NextResponse.json({ error: message }, { status: message.includes("logged in") ? 401 : 403 });
+    }
+
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -9,13 +16,6 @@ export async function GET() {
     if (!apiKey || !apiSecret || !cloudName) {
         return NextResponse.json({ error: "Cloudinary not configured" }, { status: 500 });
     }
-
-    const timestamp = Math.round(Date.now() / 1000);
-    const paramsToSign = `folder=mamen&resource_type=image&timestamp=${timestamp}`;
-    const signature = crypto
-        .createHash("sha256")
-        .update(paramsToSign + apiSecret)
-        .digest("hex");
 
     const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image?type=upload&prefix=mamen&max_results=500`;
 

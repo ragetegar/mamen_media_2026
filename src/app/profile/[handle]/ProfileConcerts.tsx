@@ -6,6 +6,7 @@ import { Concert } from "@/lib/types";
 import { Calendar, MapPin, ChevronLeft, ChevronRight, History } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { formatDate } from "@/lib/format";
 
 interface ProfileConcertItem {
     concert: Concert;
@@ -184,7 +185,7 @@ export default function ProfileConcerts({ userId, mode }: ProfileConcertsProps) 
                                 <div className="flex items-center gap-1.5 text-xs text-mamen-gray-400">
                                     <Calendar size={12} className="shrink-0" />
                                     <span>
-                                        {eventDate.toLocaleDateString("en-US", {
+                                        {formatDate(eventDate, {
                                             weekday: "short",
                                             month: "short",
                                             day: "numeric",

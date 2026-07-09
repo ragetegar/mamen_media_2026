@@ -8,6 +8,7 @@ import { ArrowLeft, Users, Calendar, MapPin } from "lucide-react";
 import { notFound } from "next/navigation";
 import BarenganDetailClient from "./BarenganDetailClient";
 import BarenganComments from "./BarenganComments";
+import { formatDate } from "@/lib/format";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -66,7 +67,7 @@ export default async function BarenganDetailPage({ params }: PageProps) {
                                         {post.profile?.name || "Anonymous"}
                                     </Link>
                                     <p className="text-xs text-mamen-gray-700">
-                                        @{post.profile?.handle || "user"} · {new Date(post.created_at).toLocaleDateString("en-US", {
+                                        @{post.profile?.handle || "user"} · {formatDate(post.created_at, {
                                             month: "short", day: "numeric", year: "numeric"
                                         })}
                                     </p>
@@ -108,7 +109,7 @@ export default async function BarenganDetailPage({ params }: PageProps) {
                                             <div className="flex items-center gap-2 text-xs text-mamen-gray-700 mt-1">
                                                 <Calendar size={12} />
                                                 <span>
-                                                    {new Date(post.concert.start_datetime).toLocaleDateString("en-US", {
+                                                    {formatDate(post.concert.start_datetime, {
                                                         weekday: "short", month: "short", day: "numeric", year: "numeric"
                                                     })}
                                                 </span>

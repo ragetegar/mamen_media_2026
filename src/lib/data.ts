@@ -610,12 +610,13 @@ export const mockFeaturedBrands: FeaturedBrand[] = [
 
 // ── DATA ACCESS FUNCTIONS ──
 
-export async function getArticles(category?: ArticleCategory, subcategory?: string): Promise<Article[]> {
+export async function getArticles(category?: ArticleCategory, subcategory?: string, limit = 60): Promise<Article[]> {
     let query = supabase
         .from("articles")
         .select("*")
         .eq("status", "published")
-        .order("published_at", { ascending: false });
+        .order("published_at", { ascending: false })
+        .limit(limit);
 
     if (category) {
         query = query.eq("category", category);
@@ -678,6 +679,7 @@ export async function getConcerts(filters?: {
     type?: ConcertType;
     sort?: ConcertSort;
     hidePast?: boolean;
+    limit?: number;
 }): Promise<Concert[]> {
     const sortBy = filters?.sort || "soonest";
 
@@ -707,6 +709,8 @@ export async function getConcerts(filters?: {
         // "soonest" — default
         query = query.order("start_datetime", { ascending: true });
     }
+
+    query = query.limit(filters?.limit ?? 100);
 
     const { data, error } = await query;
     if (error) {
