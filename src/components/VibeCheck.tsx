@@ -9,7 +9,7 @@ interface TopBrandsProps {
 
 export default function TopBrands({ brands }: TopBrandsProps) {
     return (
-        <section className="bg-mamen-black py-12 md:py-16 border-b-4 border-mamen-magenta">
+        <section className="bg-mamen-black py-12 md:py-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Section Header */}
                 <div className="flex items-end justify-between mb-8">

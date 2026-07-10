@@ -54,13 +54,7 @@ export default function UsersListClient() {
         setError("");
         setSavingId(target.id);
         try {
-            await updateAdminUserBadges(target.id, {
-                is_verified: updates.is_verified ?? target.is_verified ?? false,
-                official_partner_name: updates.official_partner_name ?? target.official_partner_name ?? "",
-                official_partner_logo: updates.official_partner_logo ?? target.official_partner_logo ?? "",
-                official_partner_url: updates.official_partner_url ?? target.official_partner_url ?? "",
-                barengan_custom_tag: updates.barengan_custom_tag ?? target.barengan_custom_tag ?? "",
-            });
+            await updateAdminUserBadges(target.id, updates);
             await fetchUsers();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to update profile badges");

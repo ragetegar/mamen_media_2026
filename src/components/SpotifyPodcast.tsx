@@ -4,7 +4,7 @@ interface SpotifyPodcastProps {
 
 export default function SpotifyPodcast({ showId }: SpotifyPodcastProps) {
     return (
-        <section className="bg-mamen-black py-12 md:py-16 border-t-4 border-b-4 border-mamen-lime">
+        <section className="bg-mamen-black py-12 md:py-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-end justify-between mb-8">
                     <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-black text-mamen-white">

@@ -28,7 +28,7 @@ export default function HeroBanner({ articles }: HeroBannerProps) {
     if (!featured) return null;
 
     return (
-        <section className="bg-mamen-black border-b-4 border-mamen-purple">
+        <section className="bg-mamen-black">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                     {/* Main Featured Story */}

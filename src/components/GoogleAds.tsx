@@ -83,13 +83,10 @@ export function GoogleAdUnit({
     return (
         <aside
             className={`relative overflow-hidden border border-mamen-gray-800 bg-mamen-gray-900/65 ${className}`}
-            aria-label="Sponsored"
+            aria-label="Advertisement"
         >
-            <span className="absolute left-3 top-2 z-10 font-headline text-[10px] font-bold uppercase text-mamen-gray-700">
-                Sponsored
-            </span>
             <ins
-                className="adsbygoogle block min-h-[120px] pt-6"
+                className="adsbygoogle block min-h-[120px]"
                 style={{ display: "block", ...style }}
                 data-ad-client={ADSENSE_CLIENT}
                 data-ad-slot={slot}

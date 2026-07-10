@@ -15,7 +15,7 @@ export default function PublicVoiceSection({ articles }: PublicVoiceSectionProps
     if (!featured) return null;
 
     return (
-        <section className="bg-mamen-gray-900 py-16 md:py-20 border-y-4 border-mamen-lime">
+        <section className="bg-mamen-gray-900 py-16 md:py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <SectionHeader
                     title="PUBLIC"

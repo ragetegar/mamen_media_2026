@@ -6,7 +6,6 @@ import ArticleTile from "@/components/ArticleTile";
 import NewsletterBlock from "@/components/NewsletterBlock";
 import SpotifyPodcast from "@/components/SpotifyPodcast";
 import PublicVoiceSection from "@/components/PublicVoiceSection";
-import { GoogleAdUnit } from "@/components/GoogleAds";
 import { getArticles, getConcerts, getFeaturedBrands } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +33,6 @@ export default async function HomePage() {
       {/* 3. Public Voice — intentionally separate from the headline */}
       <PublicVoiceSection articles={publicVoiceArticles} />
 
-      <section className="bg-mamen-black">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <GoogleAdUnit placement="feed" className="min-h-[120px]" format="horizontal" />
-        </div>
-      </section>
-
       {latestArticles.length >= 3 && (
         <section className="bg-mamen-black py-16 md:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,7 +53,7 @@ export default async function HomePage() {
 
       {/* 5. Fresh Heat — Upcoming Concerts */}
       {concerts.length >= 2 && (
-        <section className="bg-mamen-gray-900 py-16 md:py-20 border-t-4 border-mamen-magenta">
+        <section className="bg-mamen-gray-900 py-16 md:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
               title="FRESH"
