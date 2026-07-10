@@ -174,6 +174,18 @@ export interface FeaturedBrand {
     is_active?: boolean;
 }
 
+export interface HomepageSponsor {
+    id: string;
+    name: string;
+    image: string;
+    link: string;
+    alt_text?: string;
+    sort_order?: number;
+    is_active?: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface ArticleConcert {
     article_id: string;
     concert_id: string;

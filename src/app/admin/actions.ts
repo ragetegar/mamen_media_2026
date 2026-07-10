@@ -1,7 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase";
-import { Article, ArticleProduct, Concert, FeaturedBrand, Merchant } from "@/lib/types";
+import { Article, ArticleProduct, Concert, FeaturedBrand, HomepageSponsor, Merchant } from "@/lib/types";
 import { isValidArticleTaxonomy } from "@/lib/article-taxonomy";
 import { getAdminContext, type AdminRole } from "@/lib/admin-auth";
 
@@ -442,6 +443,80 @@ export async function deleteBrand(id: string) {
 
     const { error } = await supabase.from("featured_brands").delete().eq("id", id);
     if (error) throw new Error(`Failed to delete brand: ${error.message}`);
+}
+
+export async function getAdminSponsors() {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage sponsors");
+
+    const { data, error } = await supabase
+        .from("homepage_sponsors")
+        .select("*")
+        .order("sort_order")
+        .order("created_at", { ascending: false });
+
+    if (error) throw new Error(`Failed to load sponsors: ${error.message}`);
+    return (data || []) as HomepageSponsor[];
+}
+
+export async function createSponsor(sponsor: Omit<HomepageSponsor, "id" | "created_at" | "updated_at">) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage sponsors");
+
+    const { data, error } = await supabase
+        .from("homepage_sponsors")
+        .insert({
+            ...sponsor,
+            name: sponsor.name.trim(),
+            image: sponsor.image.trim(),
+            link: sponsor.link.trim() || "/",
+            alt_text: sponsor.alt_text?.trim() || null,
+            sort_order: sponsor.sort_order || 0,
+            is_active: sponsor.is_active ?? false,
+        })
+        .select()
+        .single();
+
+    if (error) throw new Error(`Failed to create sponsor: ${error.message}`);
+    revalidatePath("/");
+    return data as HomepageSponsor;
+}
+
+export async function updateSponsor(
+    id: string,
+    sponsor: Omit<HomepageSponsor, "id" | "created_at" | "updated_at">,
+) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage sponsors");
+
+    const { data, error } = await supabase
+        .from("homepage_sponsors")
+        .update({
+            ...sponsor,
+            name: sponsor.name.trim(),
+            image: sponsor.image.trim(),
+            link: sponsor.link.trim() || "/",
+            alt_text: sponsor.alt_text?.trim() || null,
+            sort_order: sponsor.sort_order || 0,
+            is_active: sponsor.is_active ?? false,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+    if (error) throw new Error(`Failed to update sponsor: ${error.message}`);
+    revalidatePath("/");
+    return data as HomepageSponsor;
+}
+
+export async function deleteSponsor(id: string) {
+    const { supabase, profile } = await getAdminContext();
+    if (profile.role !== "admin") throw new Error("Only admins can manage sponsors");
+
+    const { error } = await supabase.from("homepage_sponsors").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete sponsor: ${error.message}`);
+    revalidatePath("/");
 }
 
 export async function deleteArticleProduct(id: string) {

@@ -6,7 +6,8 @@ import ArticleTile from "@/components/ArticleTile";
 import NewsletterBlock from "@/components/NewsletterBlock";
 import SpotifyPodcast from "@/components/SpotifyPodcast";
 import PublicVoiceSection from "@/components/PublicVoiceSection";
-import { getArticles, getConcerts, getFeaturedBrands } from "@/lib/data";
+import HomepageSponsors from "@/components/HomepageSponsors";
+import { getArticles, getConcerts, getFeaturedBrands, getHomepageSponsors } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,17 @@ export default async function HomePage() {
   const latestArticles = editorialArticles.slice(4, 10); // For Latest Drops
   const allConcerts = await getConcerts();
   const concerts = allConcerts.slice(0, 4);
-  const brands = await getFeaturedBrands();
+  const [brands, sponsors] = await Promise.all([
+    getFeaturedBrands(),
+    getHomepageSponsors(),
+  ]);
 
   return (
     <>
       {/* 1. Editorial Hero Banner */}
       <HeroBanner articles={topArticles} />
+
+      <HomepageSponsors sponsors={sponsors} />
 
       {/* 2. Top Brands (replaces Vibe Check) */}
       <TopBrands brands={brands} />

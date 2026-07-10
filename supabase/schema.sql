@@ -82,6 +82,19 @@ CREATE TABLE featured_brands (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ── Homepage Sponsors ──
+CREATE TABLE homepage_sponsors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  image TEXT NOT NULL,
+  link TEXT NOT NULL DEFAULT '/',
+  alt_text TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE OR REPLACE FUNCTION public.normalize_brand_name(value TEXT)
 RETURNS TEXT
 LANGUAGE sql
@@ -148,6 +161,7 @@ ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE article_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE concerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE featured_brands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE homepage_sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE affiliate_clicks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
@@ -156,6 +170,7 @@ CREATE POLICY "Public read articles" ON articles FOR SELECT USING (status = 'pub
 CREATE POLICY "Public read products" ON article_products FOR SELECT USING (true);
 CREATE POLICY "Public read concerts" ON concerts FOR SELECT USING (true);
 CREATE POLICY "Public read brands" ON featured_brands FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read active homepage sponsors" ON homepage_sponsors FOR SELECT TO anon, authenticated USING (is_active = true);
 
 -- Allow anonymous inserts
 CREATE POLICY "Anonymous insert clicks" ON affiliate_clicks FOR INSERT WITH CHECK (true);

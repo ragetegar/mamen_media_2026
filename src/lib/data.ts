@@ -11,6 +11,7 @@ import {
     ConcertType,
     ConcertSort,
     FeaturedBrand,
+    HomepageSponsor,
     BarenganPost,
     BarenganResponse,
     BarenganMember,
@@ -810,6 +811,22 @@ export async function getFeaturedBrands(): Promise<FeaturedBrand[]> {
         return [];
     }
     return data as FeaturedBrand[];
+}
+
+export async function getHomepageSponsors(): Promise<HomepageSponsor[]> {
+    const { data, error } = await supabase
+        .from("homepage_sponsors")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+    if (error) {
+        console.error("Error fetching homepage sponsors:", error);
+        return [];
+    }
+    return data as HomepageSponsor[];
 }
 
 export async function getArticleLinkedConcerts(article: Article): Promise<Concert[]> {
