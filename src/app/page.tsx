@@ -7,6 +7,7 @@ import NewsletterBlock from "@/components/NewsletterBlock";
 import SpotifyPodcast from "@/components/SpotifyPodcast";
 import PublicVoiceSection from "@/components/PublicVoiceSection";
 import HomepageSponsors from "@/components/HomepageSponsors";
+import { GoogleAdUnit } from "@/components/GoogleAds";
 import { getArticles, getConcerts, getFeaturedBrands, getHomepageSponsors } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,14 @@ export default async function HomePage() {
       <HeroBanner articles={topArticles} />
 
       <HomepageSponsors sponsors={sponsors} />
+
+      <section className="bg-mamen-black px-4 py-6 sm:px-6 lg:px-8">
+        <GoogleAdUnit
+          placement="feed"
+          format="horizontal"
+          className="mx-auto min-h-[120px] max-w-7xl !border-0"
+        />
+      </section>
 
       {/* 2. Top Brands (replaces Vibe Check) */}
       <TopBrands brands={brands} />
@@ -75,6 +84,14 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      <section className="bg-mamen-black px-4 py-6 sm:px-6 lg:px-8">
+        <GoogleAdUnit
+          placement="feed"
+          format="horizontal"
+          className="mx-auto min-h-[120px] max-w-7xl !border-0"
+        />
+      </section>
 
       {/* 6. Podcast — Spotify Embed */}
       <SpotifyPodcast showId="3mZaixB9zIUiQwbe2Msqit" />
