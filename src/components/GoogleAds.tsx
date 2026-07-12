@@ -1,8 +1,7 @@
 "use client";
 
-import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 
 const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
@@ -30,25 +29,11 @@ declare global {
     }
 }
 
+const initializedAds = new WeakSet<HTMLElement>();
+
 function isAdsExcluded(pathname: string | null) {
     if (!pathname) return false;
     return EXCLUDED_AD_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
-
-export function GoogleAdsenseScript() {
-    const pathname = usePathname();
-
-    if (!ADSENSE_CLIENT || isAdsExcluded(pathname)) return null;
-
-    return (
-        <Script
-            id="google-adsense"
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-        />
-    );
 }
 
 interface GoogleAdUnitProps {
@@ -66,15 +51,26 @@ export function GoogleAdUnit({
 }: GoogleAdUnitProps) {
     const pathname = usePathname();
     const slot = adSlots[placement];
+    const adRef = useRef<HTMLModElement>(null);
 
     useEffect(() => {
-        if (!ADSENSE_CLIENT || !slot || isAdsExcluded(pathname)) return;
+        const adElement = adRef.current;
+        if (
+            !ADSENSE_CLIENT
+            || !slot
+            || !adElement
+            || isAdsExcluded(pathname)
+            || initializedAds.has(adElement)
+            || adElement.dataset.adsbygoogleStatus
+        ) return;
+
+        initializedAds.add(adElement);
 
         try {
             window.adsbygoogle = window.adsbygoogle || [];
             window.adsbygoogle.push({});
         } catch {
-            // Ad blockers and duplicate initializations can throw here.
+            // Ad blockers can throw while the element remains safe to skip.
         }
     }, [pathname, slot]);
 
@@ -86,6 +82,7 @@ export function GoogleAdUnit({
             aria-label="Advertisement"
         >
             <ins
+                ref={adRef}
                 className="adsbygoogle block min-h-[120px]"
                 style={{ display: "block", ...style }}
                 data-ad-client={ADSENSE_CLIENT}

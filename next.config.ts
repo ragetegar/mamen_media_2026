@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
         hostname: "images.unsplash.com",
       },
       {
@@ -26,6 +30,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "img.antaranews.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.antaranews.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.esports.id",
       },
       {
         protocol: "https",

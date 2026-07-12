@@ -8,7 +8,6 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth-context";
 import AuthGuard from "@/components/AuthGuard";
 import PWARegistration from "@/components/PWARegistration";
-import { GoogleAdsenseScript } from "@/components/GoogleAds";
 import type { Viewport } from "next";
 import Script from "next/script";
 import { getSiteUrl } from "@/lib/site";
@@ -72,6 +71,7 @@ export const metadata: Metadata = {
 };
 
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
+const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 
 export default function RootLayout({
   children,
@@ -97,7 +97,15 @@ export default function RootLayout({
             </Script>
           </>
         )}
-        <GoogleAdsenseScript />
+        {adsenseClient && (
+          <Script
+            id="google-adsense"
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <PWARegistration />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
