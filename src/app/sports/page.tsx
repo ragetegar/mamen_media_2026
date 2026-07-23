@@ -1,7 +1,7 @@
 import CategoryListingPage from "@/components/CategoryListingPage";
 import { ARTICLE_TAXONOMY } from "@/lib/article-taxonomy";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Sports",
@@ -14,7 +14,7 @@ interface PageProps {
 
 export default async function SportsPage({ searchParams }: PageProps) {
     const { sub } = await searchParams;
-    if (sub) notFound();
+    if (sub) redirect("/");
     return (
         <CategoryListingPage
             category="sports"

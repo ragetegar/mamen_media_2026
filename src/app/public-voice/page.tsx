@@ -1,6 +1,6 @@
 import CategoryListingPage from "@/components/CategoryListingPage";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Public Voice",
@@ -15,7 +15,7 @@ interface PageProps {
 
 export default async function PublicVoicePage({ searchParams }: PageProps) {
     const { sub } = await searchParams;
-    if (sub) notFound();
+    if (sub) redirect("/");
 
     return (
         <CategoryListingPage

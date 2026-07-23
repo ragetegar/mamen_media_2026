@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getArticleHref, getArticleSubcategoryLabel } from "@/lib/article-taxonomy";
 import { getArticlesByTag } from "@/lib/data";
 import { normalizeArticleTag } from "@/lib/tags";
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: TagPageProps): Promise<Metada
 export default async function TagPage({ params }: TagPageProps) {
     const { tag: rawTag } = await params;
     const tag = normalizeArticleTag(rawTag);
-    if (!tag) notFound();
+    if (!tag) redirect("/");
 
     const articles = await getArticlesByTag(tag);
 

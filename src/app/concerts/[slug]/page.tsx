@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import Badge from "@/components/ui/Badge";
 import ArticleTile from "@/components/ArticleTile";
 import ConcertInterestButton from "./ConcertInterestButton";
@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ConcertDetailPage({ params }: PageProps) {
     const { slug } = await params;
     const concert = await getConcertBySlug(slug);
-    if (!concert) notFound();
+    if (!concert) redirect("/");
 
     const eventDate = new Date(concert.start_datetime);
     const eventEndDate = new Date(concert.end_datetime || concert.start_datetime);

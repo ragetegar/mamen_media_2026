@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import Image from "next/image";
 import Badge from "@/components/ui/Badge";
 import AffiliateProductTile from "@/components/AffiliateProductTile";
@@ -62,14 +62,14 @@ function splitArticleBodyHtml(bodyHtml: string) {
 
 export default async function ArticleDetailPage({ slug, expectedCategory, expectedSubcategory }: ArticleDetailPageProps) {
     const article = await getArticleBySlug(slug);
-    if (!article) notFound();
+    if (!article) redirect("/");
 
     // If expectedCategory is set, validate the article belongs to this category
     if (
         (expectedCategory && article.category !== expectedCategory)
         || (expectedSubcategory && article.subcategory !== expectedSubcategory)
     ) {
-        notFound();
+        redirect("/");
     }
 
     const products = await getArticleProducts(article.id);

@@ -5,7 +5,7 @@ import { BARENGAN_STATUS_OPTIONS } from "@/lib/types";
 import { getBarenganPostById } from "@/lib/data";
 import { getBarenganCapacity, getBarenganMemberTotal } from "@/lib/barengan";
 import { ArrowLeft, Users, Calendar, MapPin } from "lucide-react";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import BarenganDetailClient from "./BarenganDetailClient";
 import BarenganComments from "./BarenganComments";
 import { formatDate } from "@/lib/format";
@@ -20,7 +20,7 @@ export default async function BarenganDetailPage({ params }: PageProps) {
     const post = await getBarenganPostById(id);
 
     if (!post) {
-        notFound();
+        redirect("/");
     }
 
     const statusInfo = BARENGAN_STATUS_OPTIONS.find((s) => s.value === post.status);
